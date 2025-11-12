@@ -3,26 +3,27 @@ from libs.tcs3472_micropython.tcs3472 import tcs3472
 import time
 from utime import sleep
 
-IR_PINS = [34, 35, 32, 33] #adjust accordingly
+IR_PINS = [10, 12, 13, 11] #adjust accordingly
 
 # Motor pins - adjust accordingly -------------------------------------------------------------------------------------------------------
-motor_left_pwm_pin = 25
-motor_left_dir_pin = 26
-motor_right_pwm_pin = 27
-motor_right_dir_pin = 14
+motor_left_pwm_pin = 6
+motor_left_dir_pin = 7
+motor_right_pwm_pin = 5
+motor_right_dir_pin = 4
 
 
 #---Parameters---
-weights = [-3.0, -1.0, 1.0, 3.0] # position from the center of each sensor
-base_speed = 40000 # pwm duty
+weights = [-5.0, -1.0, 1.0, 5.0] # position from the center of each sensor
+base_speed = 50000 # pwm duty
 max_pwm = 65535
 min_pwm = 15000
 
-Kp = 1.0
+# how were these values chosen?
+Kp = -1500.0
 Ki = 0.0
-Kd = 0.0
+Kd = -0.05
 
-dt_ms = 30 # control loop period in ms
+dt_ms = 10 # control loop period in ms
 
 # --- sensor setup
 # Include sensor setup here plz ----------------------------------------------------------------------------------------
