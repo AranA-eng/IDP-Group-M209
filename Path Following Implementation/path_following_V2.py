@@ -34,7 +34,7 @@ sensors = [Pin(IR), Pin.IN for IR in IR_PINS]
 #--- Motor Class
 class Motor:
     def __init__(self, dir_pin, PWMPin):
-        self.mDir = Pin(dirPin, Pin.OUT)
+        self.mDir = Pin(dir_pin, Pin.OUT)
         self.pwm = PWM(Pin(PWMPin)) # set motor pwm pin
         self.pwm.freq(1000) # set PWM frequeuncy
         self.pwm.duty_u16(0) # set duty cycle - 0 = off

@@ -7,7 +7,7 @@ IR_PINS = [34, 35, 32, 33] #adjust accordingly
 motor_left_pwm_pin = 25
 motor_left_dir_pin = 26
 motor_right_pwm_pin = 27
-motor_right_pwm_pin = 14
+motor_right_dir_pin = 14
 
 
 #---Parameters---
@@ -28,7 +28,7 @@ dt_ms = 30 # control loop period in ms
 #--- Motor Class
 class Motor:
     def __init__(self, dir_pin, PWMPin):
-        self.mDir = Pin(dirPin, Pin.OUT)
+        self.mDir = Pin(dir_pin, Pin.OUT)
         self.pwm = PWM(Pin(PWMPin)) # set motor pwm pin
         self.pwm.freq(1000) # set PWM frequeuncy
         self.pwm.duty_u16(0) # set duty cycle - 0 = off
@@ -70,7 +70,7 @@ class PID:
         self.prev_err = err
         return out
     
-pid = PID(Kp, Ki, Kd, DT_MS, out_min=-BASE_SPEED, out_max=BASE_SPEED)
+pid = PID(Kp, Ki, Kd, dt_ms, out_min=-base_speed, out_max=base_speed)
 
 def read_sensors():
     return [s.read_u16() for s in sensors]
