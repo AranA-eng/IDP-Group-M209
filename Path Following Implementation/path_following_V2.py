@@ -92,8 +92,8 @@ def compute_error(vals):
     for w, v in zip(weights, vals):
         total += w * v
         weight_sum += v
-    if weight_sum < 10:
-        return None
+    if weight_sum == 0:
+        return 0
     return total / weight_sum
 
 
