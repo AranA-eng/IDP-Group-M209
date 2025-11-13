@@ -4,9 +4,10 @@ class PID:
     """
     Discrete PID controller
     usage: 
-        pid = PID(kp = 1, ki = 1, kd= 1, output_limits=(max,min))
+        pid = PID(kp = 1, ki = 1, kd= 1, out_min = -base_speed, out_max = base_speed)
         while True:
             control = pid.update(err)
+    dt_ms is in ms
     """
     def __init__(self, kp, ki, kd, dt_ms, out_min = -1e9, out_max = 1e9):
         self.kp, self.ki, self.kd = kp, ki, kd
