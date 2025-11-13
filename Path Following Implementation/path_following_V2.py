@@ -19,16 +19,58 @@ max_pwm = 65535
 min_pwm = 15000
 
 # how were these values chosen?
-Kp = -1500.0
+Kp = -2000.0
 Ki = 0.0
-Kd = -0.05
+Kd = 1.0
 
-dt_ms = 5 # control loop period in ms
+dt_ms = 10 # control loop period in ms
 
 # --- sensor setup
 # Include sensor setup here plz ----------------------------------------------------------------------------------------
 sensors = [Pin(IR, Pin.IN) for IR in IR_PINS]
+left_junc_count = 0
+right_junc_count = 0
+cross_junc_count = 0
 
+
+
+
+
+# --- Junction decisions for lap test ---
+right_juncs = {
+#assuming we turn left at the beginning, going round CW
+1: 10, #ignore: bay6 orange
+2: 10, #ignore: bay5 orange
+3: 10, #ignore: bay4 orange
+4: 10, #ignore: bay3 orange
+5: 10, #ignore: bay2 orange
+6: 10, #ignore: bay1 orange
+7: -1, #turn right: major corner
+8: 10, #ignore: ramp
+9: -1, #turn right: major corner 
+10: 10, #ignore: bay1 purple
+11: 10, #ignore: bay2 purple
+12: 10, #ignore: bay3 purple
+13: 10, #ignore: bay4 purple
+14: 10, #ignore: bay5 purple
+15: 10, #ignore: bay6 purple
+16: -1 #turn right: final major turn
+}
+
+left_juncs = {
+#assuming we turn left at the beginning, going round CW
+1: 10, #ignore: green bay 
+2: 10, #ignore: yellow bay
+3: 1 #turn left: ending
+}
+cross_juncs = {
+1: 10, #ignore: inside starting box
+2: 1, #turn left: beginning
+3: -1, #turn right: major corner
+4: 10, #ignore: random +
+5: 10, #ignore: random +
+6: 10 #ignore: inside starting box
+}
 
 
 
@@ -81,7 +123,7 @@ class PID:
 pid = PID(Kp, Ki, Kd, dt_ms, out_min=-base_speed, out_max=base_speed)
 
 def read_sensors():
-    sleep(0.3)
+    sleep(0.05)
     return [s.value() for s in sensors]
 
 
@@ -107,13 +149,22 @@ def apply_motor_speeds(base, correction, junction):
     left = max(min_pwm, min(max_pwm, int(left)))
     right = max(min_pwm, min(max_pwm, int(right)))
     
-    if junction == 0:
+    if junction == 0: #normal travel along the line
         left_motor.set(left)
         right_motor.set(right)
-    else:
+        sleep(0.03)
+    elif junction == 10: #junction detected but ignored
+        left = base + correction
+        right = base - correction
+        left = max(min_pwm, min(max_pwm, int(left)))
+        right = max(min_pwm, min(max_pwm, int(right)))
         left_motor.set(left)
-        right_motor.set(right)        
-        sleep(0.8)
+        right_motor.set(right)
+        sleep(0.4)
+    else: #needs a sleep so that turning can be completed without a second detection
+        left_motor.set(left)
+        right_motor.set(right)
+        sleep(1.1)
     
 def stop_all():
     left_motor.set(0)
@@ -127,21 +178,26 @@ try:
         corr = pid.update(err)
         
         if vals == [1, 1, 1, 0]:
-            junction = 1
+            left_junc_count += 1
+            junction = left_juncs[left_junc_count]   # left junction
         elif vals == [0, 1, 1, 1]:
-            junction = -1
+            right_junc_count += 1
+            junction = right_juncs[right_junc_count]   # right junction
         elif vals == [1, 1, 1, 1]:
-            junction = 1
+            cross_junc_count += 1
+            junction = cross_juncs[cross_junc_count] # cross junction
         else:
             junction = 0
         
         apply_motor_speeds(base_speed, corr, junction)
+        print(f"cross juncs: {cross_junc_count}, right juncs: {right_junc_count}, left juncs: {left_junc_count}, junction: {junction}")
         elapsed = time.ticks_diff(time.ticks_ms(), t_start)
         if elapsed < dt_ms:
             time.sleep_ms(dt_ms - elapsed)
-            
 
 
 finally:
     stop_all()
+
+
 
