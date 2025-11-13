@@ -27,7 +27,7 @@ dt_ms = 10 # control loop period in ms
 
 # --- sensor setup
 # Include sensor setup here plz ----------------------------------------------------------------------------------------
-sensors = [Pin(IR), Pin.IN for IR in IR_PINS]
+sensors = [Pin(IR, Pin.IN) for IR in IR_PINS]
 
 
 
@@ -81,7 +81,7 @@ class PID:
 pid = PID(Kp, Ki, Kd, dt_ms, out_min=-base_speed, out_max=base_speed)
 
 def read_sensors():
-    sleep(0.5)
+    sleep(0.3)
     return [s.value() for s in sensors]
 
 
@@ -98,14 +98,22 @@ def compute_error(vals):
 
 
 # beware of signs here for left and right
-def apply_motor_speeds(base, correction):
-    left = base + correction 
-    right = base - correction
+def apply_motor_speeds(base, correction, junction):
+    junction_boost = 55000  # arbitrary increase in PWM for turning
+    
+    left = base + correction + junction * junction_boost
+    right = base - correction - junction * junction_boost
+
     left = max(min_pwm, min(max_pwm, int(left)))
     right = max(min_pwm, min(max_pwm, int(right)))
     
-    left_motor.set(left)
-    right_motor.set(right)
+    if junction == 0:
+        left_motor.set(left)
+        right_motor.set(right)
+    else:
+        left_motor.set(left)
+        right_motor.set(right)        
+        sleep(0.8)
     
 def stop_all():
     left_motor.set(0)
@@ -117,16 +125,23 @@ try:
         vals = read_sensors()
         err = compute_error(vals)
         corr = pid.update(err)
-        apply_motor_speeds(base_speed, corr)
+        
+        if vals == [1, 1, 1, 0]:
+            junction = 1
+        elif vals == [0, 1, 1, 1]:
+            junction = -1
+        elif vals == [1, 1, 1, 1]:
+            junction = 1
+        else:
+            junction = 0
+        
+        apply_motor_speeds(base_speed, corr, junction)
         elapsed = time.ticks_diff(time.ticks_ms(), t_start)
         if elapsed < dt_ms:
             time.sleep_ms(dt_ms - elapsed)
             
-            
-    #state = line_sensor.value()  # 0 = no line (black), 1 = line (white)
-    #if state == 0:
-        #print("Line detected (black surface)") 
-    #sleep(0.5)
+
 
 finally:
     stop_all()
+
