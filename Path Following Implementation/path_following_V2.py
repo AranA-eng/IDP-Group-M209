@@ -23,11 +23,11 @@ Kp = -1500.0
 Ki = 0.0
 Kd = -0.05
 
-dt_ms = 10 # control loop period in ms
+dt_ms = 5 # control loop period in ms
 
 # --- sensor setup
 # Include sensor setup here plz ----------------------------------------------------------------------------------------
-sensors = [Pin(IR), Pin.IN for IR in IR_PINS]
+sensors = [Pin(IR, Pin.IN) for IR in IR_PINS]
 
 
 
@@ -81,7 +81,7 @@ class PID:
 pid = PID(Kp, Ki, Kd, dt_ms, out_min=-base_speed, out_max=base_speed)
 
 def read_sensors():
-    sleep(0.5)
+    sleep(0.005)
     return [s.value() for s in sensors]
 
 
