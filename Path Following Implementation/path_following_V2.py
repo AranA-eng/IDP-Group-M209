@@ -125,7 +125,7 @@ class PID:
 pid = PID(Kp, Ki, Kd, dt_ms, out_min=-base_speed, out_max=base_speed)
 
 def read_sensors():
-    sleep(0.05)
+    sleep(0.075)
     return [s.value() for s in sensors]
 
 
@@ -193,13 +193,13 @@ try:
         else:
             junction = 0
         
-        if cross_junc_count == 6:
-            sleep(1.3)
+        if cross_junc_count == 6 or left_junc_count == 4 or right_junc_count == 17:
+            sleep(1.5)
             stop_all()
             break
         
         apply_motor_speeds(base_speed, corr, junction)
-        print(f"cross juncs: {cross_junc_count}, junction: {junction}")
+        #print(f"cross juncs: {cross_junc_count}, junction: {junction}")
         elapsed = time.ticks_diff(time.ticks_ms(), t_start)
         if elapsed < dt_ms:
             time.sleep_ms(dt_ms - elapsed)
