@@ -13,15 +13,15 @@ motor_right_dir_pin = 4
 
 
 #---Parameters---
-weights = [-5.0, -1.0, 1.0, 5.0] # position from the center of each sensor
-base_speed = 50000 # pwm duty
+weights = [-5.0, -2.0, 2.0, 5.0] # position from the center of each sensor
+base_speed = 45000 # pwm duty
 max_pwm = 65535
 min_pwm = 15000
 
 # how were these values chosen?
 Kp = -2000.0
 Ki = 0.0
-Kd = 1.0
+Kd = -10.0
 
 dt_ms = 10 # control loop period in ms
 
@@ -54,14 +54,16 @@ right_juncs = {
 13: 10, #ignore: bay4 purple
 14: 10, #ignore: bay5 purple
 15: 10, #ignore: bay6 purple
-16: -1 #turn right: final major turn
+16: -1, #turn right: final major turn
+17: 10 #ignore: buffer
 }
 
 left_juncs = {
 #assuming we turn left at the beginning, going round CW
 1: 10, #ignore: green bay 
 2: 10, #ignore: yellow bay
-3: 1 #turn left: ending
+3: 1, #turn left: ending
+4: 10 #ignore: buffer
 }
 cross_juncs = {
 1: 10, #ignore: inside starting box
@@ -129,6 +131,8 @@ def read_sensors():
 
 # --- function that computes the error---
 def compute_error(vals):
+    if vals == [1, 1, 1, 0] or vals == [0, 1, 1, 1] or vals == [1, 1, 1, 1]:
+        return 0                            #---------------------------------------------------------------------
     total = 0.0
     weight_sum = 0.0
     for w, v in zip(weights, vals):
@@ -189,8 +193,13 @@ try:
         else:
             junction = 0
         
+        if cross_junc_count == 6:
+            sleep(1.3)
+            stop_all()
+            break
+        
         apply_motor_speeds(base_speed, corr, junction)
-        print(f"cross juncs: {cross_junc_count}, right juncs: {right_junc_count}, left juncs: {left_junc_count}, junction: {junction}")
+        print(f"cross juncs: {cross_junc_count}, junction: {junction}")
         elapsed = time.ticks_diff(time.ticks_ms(), t_start)
         if elapsed < dt_ms:
             time.sleep_ms(dt_ms - elapsed)
@@ -198,6 +207,3 @@ try:
 
 finally:
     stop_all()
-
-
-
