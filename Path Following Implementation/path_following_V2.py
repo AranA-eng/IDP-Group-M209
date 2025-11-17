@@ -14,7 +14,7 @@ motor_right_dir_pin = 4
 
 #---Parameters---
 weights = [-5.0, -2.0, 2.0, 5.0] # position from the center of each sensor
-base_speed = 42000 # pwm duty
+base_speed = 45000 # pwm duty
 max_pwm = 65535
 min_pwm = 15000
 
@@ -165,10 +165,27 @@ def apply_motor_speeds(base, correction, junction):
         left_motor.set(left)
         right_motor.set(right)
         sleep(0.4)
-    else: #needs a sleep so that turning can be completed without a second detection
-        left_motor.set(left)
-        right_motor.set(right)
-        sleep(1.1)
+    elif junction == 1: #needs a sleep so that turning can be completed without a second detection
+        turn(junction)
+    elif junction == -1: #needs a sleep so that turning can be completed without a second detection
+        turn(junction)
+
+
+
+def turn(dir):
+    if dir == 1: #left turn
+        sleep(0.45)
+        left_motor.set(55000) #left turn
+        right_motor.set(-55000)
+        sleep(0.6)
+    elif dir == -1: #right turn
+        sleep(0.45)
+        left_motor.set(-55000) #right turn
+        right_motor.set(55000)
+        sleep(0.6)
+    #else print("invalid arg for turn")
+    
+    
     
 def stop_all():
     left_motor.set(0)
@@ -207,5 +224,3 @@ try:
 
 finally:
     stop_all()
-
-
