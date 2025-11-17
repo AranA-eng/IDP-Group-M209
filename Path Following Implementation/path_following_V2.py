@@ -14,14 +14,14 @@ motor_right_dir_pin = 4
 
 #---Parameters---
 weights = [-5.0, -2.0, 2.0, 5.0] # position from the center of each sensor
-base_speed = 45000 # pwm duty
+base_speed = 42000 # pwm duty
 max_pwm = 65535
 min_pwm = 15000
 
 # how were these values chosen?
-Kp = -2000.0
-Ki = 0.0
-Kd = -10.0
+Kp = -2300.0
+Ki = -20.0
+Kd = 7.5
 
 dt_ms = 10 # control loop period in ms
 
@@ -207,3 +207,5 @@ try:
 
 finally:
     stop_all()
+
+
