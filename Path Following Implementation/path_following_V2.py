@@ -145,25 +145,19 @@ def compute_error(vals):
 
 # beware of signs here for left and right
 def apply_motor_speeds(base, correction, junction):
-    junction_boost = 55000  # arbitrary increase in PWM for turning
-    
-    left = base + correction + junction * junction_boost
-    right = base - correction - junction * junction_boost
+
+    left = base + correction
+    right = base - correction
 
     left = max(min_pwm, min(max_pwm, int(left)))
     right = max(min_pwm, min(max_pwm, int(right)))
     
+    left_motor.set(left)
+    right_motor.set(right)
+    
     if junction == 0: #normal travel along the line
-        left_motor.set(left)
-        right_motor.set(right)
         sleep(0.03)
     elif junction == 10: #junction detected but ignored
-        left = base + correction
-        right = base - correction
-        left = max(min_pwm, min(max_pwm, int(left)))
-        right = max(min_pwm, min(max_pwm, int(right)))
-        left_motor.set(left)
-        right_motor.set(right)
         sleep(0.4)
     elif junction == 1: #needs a sleep so that turning can be completed without a second detection
         turn(junction)
@@ -175,14 +169,19 @@ def apply_motor_speeds(base, correction, junction):
 def turn(dir):
     if dir == 1: #left turn
         sleep(0.45)
-        left_motor.set(55000) #left turn
+        left_motor.set(55000)
         right_motor.set(-55000)
         sleep(0.6)
     elif dir == -1: #right turn
         sleep(0.45)
-        left_motor.set(-55000) #right turn
+        left_motor.set(-55000)
         right_motor.set(55000)
         sleep(0.6)
+    elif dir == 2: #about turn
+        sleep(0.45)
+        left_motor.set(-55000)
+        right_motor.set(55000)
+        sleep(1.3)
     #else print("invalid arg for turn")
     
     
