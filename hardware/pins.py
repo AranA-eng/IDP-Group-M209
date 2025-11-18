@@ -9,5 +9,3 @@ RIGHT_DIR = 4
 
 # line sensor pins
 IR_PINS = [10, 12, 13, 11]
-
-#
