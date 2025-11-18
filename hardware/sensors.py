@@ -25,3 +25,7 @@ class IRSensorArray:
         if vals == [0,1,1,1]: return 'RIGHT'
         if vals == [1,1,1,1]: return 'CROSS'
         return None
+
+
+#--- Different sensors ---
+# time of flight?
