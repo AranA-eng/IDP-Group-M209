@@ -122,7 +122,7 @@ class PID:
         return out
     
     
-pid = PID(Kp, Ki, Kd, dt_ms, out_min=-base_speed, out_max=base_speed)
+pid = PID(Kp, Ki, Kd, dt_ms, out_min=-max_pwm, out_max=max_pwm)
 
 def read_sensors():
     sleep(0.075)
