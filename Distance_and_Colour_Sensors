@@ -6,7 +6,7 @@ import time
 from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8801, DFRobot_TMF8701
 
 
-i2c_dist = I2C(id=1, sda=Pin(2), scl=Pin(3), freq=100000) # CHANGE THIS
+i2c_dist = I2C(id=1, sda=Pin(2), scl=Pin(3), freq=100000)
 # Set the correct device
 device = "TMF8701"
 
@@ -26,8 +26,8 @@ while(tof.begin() != 0):
 print("   Initialisation done.")
 
 if device == "TMF8701":
-  #tof.start_measurement(calib_m = tof.eMODE_NO_CALIB, mode = tof.ePROXIMITY)
-  tof.start_measurement(calib_m = tof.eMODE_NO_CALIB, mode = tof.eCOMBINE)
+  tof.start_measurement(calib_m = tof.eMODE_NO_CALIB, mode = tof.ePROXIMITY)
+  #tof.start_measurement(calib_m = tof.eMODE_NO_CALIB, mode = tof.eCOMBINE)
   #tof.start_measurement(calib_m = tof.eMODE_NO_CALIB, mode = tof.eDISTANCE)
 elif device == "TMF8801":
     tof.start_measurement(calib_m = tof.eMODE_NO_CALIB)
@@ -138,7 +138,7 @@ motor_right_dir_pin = 4
 
 #---Parameters---
 weights = [-5.0, -2.0, 2.0, 5.0] # position from the center of each sensor
-base_speed = 45000 # pwm duty
+base_speed = 25000 # pwm duty
 max_pwm = 65535
 min_pwm = 15000
 
@@ -247,50 +247,62 @@ def stop_all():
     right_motor.off()
     
 
-threshold = 50 #20cm
 try:
+    
+    dt_sensors = 20
+    threshold = 200     # mm, for example
+
     while True:
-        t_start = time.ticks_ms()
+        loop_start = time.ticks_ms()
+
+        # 1. Update line-following
         vals = read_sensors_IR()
         err = compute_error(vals)
         corr = pid.update(err)
         apply_motor_speeds(base_speed, corr)
-        elapsed = time.ticks_diff(time.ticks_ms(), t_start)
-        while tof.is_data_ready() == False:
-            sleep(0.5)
-        distance = tof.get_distance_mm()
-        print(distance)
-        sleep(0.5)
-        if distance < threshold and distance != 0:
-            tof.stop_measurement()
-            stop_all()
-            sleep(2)
-            
-            onoff.value(0) #When zero, on
-            onoff_value = 0
-            i2c = I2C(0, scl=Pin(9), sda=Pin(8), freq=400000)
-            print(i2c.scan())
-            sensor = TCS34725(i2c)
-            onoff.value(1) #When zero, on
-            onoff_value = 1
-            
-            while True:
-                if (onoff_value == 0):
-                    clear, red, green, blue = sensor.read_raw()
-                    print("Clear:", clear)
-                    sensor.disable()
-                    onoff.value(1)
-                    onoff_value = 1
-                    sleep(2)
-                else:
-                    print("OFF")
-                    onoff.value(0)
-                    onoff_value = 0
-                    sleep(0.5)
-                    sensor = TCS34725(i2c)
-                    sleep(1.5)
-            break
-            
+
+        # 2. Check distance if new data
+        if tof.is_data_ready():
+            distance = tof.get_distance_mm()
+            #print("Distance:", distance)  # optional while tuning
+
+            if 0 < distance < threshold:
+                stop_all()
+                print(distance)
+                tof.stop_measurement()
+                sleep(0.5)
+                
+                onoff.value(0) #When zero, on
+                onoff_value = 0
+                i2c = I2C(0, scl=Pin(9), sda=Pin(8), freq=400000)
+                print(i2c.scan())
+                sensor = TCS34725(i2c)
+                onoff.value(1) #When zero, on
+                onoff_value = 1
+                
+                while True:
+                    if (onoff_value == 0):
+                        clear, red, green, blue = sensor.read_raw()
+                        print("Clear:", clear)
+                        sensor.disable()
+                        onoff.value(1)
+                        onoff_value = 1
+                        sleep(0.5)
+                    else:
+                        print("OFF")
+                        onoff.value(0)
+                        onoff_value = 0
+                        sleep(0.5)
+                        sensor = TCS34725(i2c)
+                        sleep(0.5)
+                break
+
+        # 3. Enforce fixed loop period
+        elapsed = time.ticks_diff(time.ticks_ms(), loop_start)
+        remaining = dt_sensors - elapsed
+        if remaining > 0:
+            time.sleep_ms(remaining)
+    
             
     #state = line_sensor.value()  # 0 = no line (black), 1 = line (white)
     #if state == 0:
