@@ -1,6 +1,7 @@
 from hardware import motor as mo
 from hardware import sensors as sen
 from control import PID, JunctionHandler
+from navigation import turn_counter
 from machine import Pin, ADC, PWM, SoftI2C, I2C
 from libs.tcs3472_micropython.tcs3472 import tcs3472
 import time
@@ -22,9 +23,6 @@ right_motor = mo.Motor(RIGHT_DIR, RIGHT_PWM)
 IR_PINS = [10, 12, 13, 11]
 line_sensor_weights = [-5.0, -2.0, 2.0, 5.0]
 sensors = sen.IRSensorArray( IR_PINS, line_sensor_weights)
-left_junc_count = 0
-right_junc_count = 0
-cross_junc_count = 0
 
 # --- Junction decisions for lap test ---
 right_juncs = {
@@ -85,22 +83,9 @@ try:
         corr = pid.update(err)
         direction = sen.IRSensorArray.detect_junction(vals)
 
-        if direction == 'LEFT':
-            left_junc_count += 1
-            junction = left_juncs[left_junc_count]
-        
-        elif direction == 'RIGHT':
-            right_junc_count += 1
-            junction = right_juncs[right_junc_count]
+        junction = turn_counter.direction(vals, left_juncs, right_juncs, cross_juncs)
 
-        elif direction == 'CROSS':
-            cross_junc_count += 1
-            junction = cross_juncs[cross_junc_count]
-        
-        else:
-            junction = 0
-
-        if cross_junc_count == 6 or left_junc_count == 4 or right_junc_count == 17:
+        if turn_counter.cross_junc_count == 6 or turn_counter.left_junc_count == 4 or turn_counter.right_junc_count == 17:
             sleep(1.5)
             mo.DiffDrive.stop()
             break
