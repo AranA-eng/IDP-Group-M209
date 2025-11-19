@@ -167,12 +167,12 @@ def apply_motor_speeds(base, correction, junction):
 
 
 def turn(dir):
-    if dir == 1: #left turn
+    if dir == 1: #right turn
         sleep(0.45)
         left_motor.set(55000)
         right_motor.set(-55000)
         sleep(0.6)
-    elif dir == -1: #right turn
+    elif dir == -1: #left turn
         sleep(0.45)
         left_motor.set(-55000)
         right_motor.set(55000)

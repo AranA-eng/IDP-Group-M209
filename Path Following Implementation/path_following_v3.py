@@ -26,16 +26,92 @@ left_junc_count = 0
 right_junc_count = 0
 cross_junc_count = 0
 
+# --- Junction decisions for lap test ---
+right_juncs = {
+#assuming we turn left at the beginning, going round CW
+1: 10, #ignore: bay6 orange
+2: 10, #ignore: bay5 orange
+3: 10, #ignore: bay4 orange
+4: 10, #ignore: bay3 orange
+5: 10, #ignore: bay2 orange
+6: 10, #ignore: bay1 orange
+7: -1, #turn right: major corner
+8: 10, #ignore: ramp
+9: -1, #turn right: major corner 
+10: 10, #ignore: bay1 purple
+11: 10, #ignore: bay2 purple
+12: 10, #ignore: bay3 purple
+13: 10, #ignore: bay4 purple
+14: 10, #ignore: bay5 purple
+15: 10, #ignore: bay6 purple
+16: -1, #turn right: final major turn
+17: 10 #ignore: buffer
+}
 
-# Controller gain values
+left_juncs = {
+#assuming we turn left at the beginning, going round CW
+1: 10, #ignore: green bay 
+2: 10, #ignore: yellow bay
+3: 1, #turn left: ending
+4: 10 #ignore: buffer
+}
+
+cross_juncs = {
+1: 10, #ignore: inside starting box
+2: 1, #turn left: beginning
+3: -1, #turn right: major corner
+4: 10, #ignore: random +
+5: 10, #ignore: random +
+6: 10 #ignore: inside starting box
+}
+
+
+# Controller parameters
+# Gain
 Kp = -2300.0
 Ki = 20.0
 Kd = 7.5
 
 dt_ms = 10 # control loop period in ms
+base_speed = 45000 # base speed
 
 pid = PID(Kp, Ki, Kd, dt_ms, out_min= - max_pwm, out_max = max_pwm)
 
+try: 
+    while True: 
+        t_start = time.ticks_ms()
+        vals = sensors.read()
+        err = sen.IRSensorArray.compute_error(vals)
+        corr = pid.update(err)
+        direction = sen.IRSensorArray.detect_junction(vals)
+
+        if direction == 'LEFT':
+            left_junc_count += 1
+            junction = left_juncs[left_junc_count]
+        
+        elif direction == 'RIGHT':
+            right_junc_count += 1
+            junction = right_juncs[right_junc_count]
+
+        elif direction == 'CROSS':
+            cross_junc_count += 1
+            junction = cross_juncs[cross_junc_count]
+        
+        else:
+            junction = 0
+
+        if cross_junc_count == 6 or left_junc_count == 4 or right_junc_count == 17:
+            sleep(1.5)
+            mo.DiffDrive.stop()
+            break
+        
+        JunctionHandler.apply_motor_speeds(base_speed, corr, junction)
+        elapsed = time.ticks_diff(time.ticks_ms(), t_start)
+        if elapsed < dt_ms:
+            time.sleep_ms(dt_ms - elapsed)
+
+finally:
+    mo.DiffDrive.stop()
 
 
 

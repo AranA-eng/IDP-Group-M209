@@ -20,7 +20,7 @@ class Motor:
         
         self.pwm.duty_u16(duty)
 
-class DifferentialDrive:
+class DiffDrive:
     def __init__(self, left_motor, right_motor):
         self.left = left_motor
         self.right = right_motor

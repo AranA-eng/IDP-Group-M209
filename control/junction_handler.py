@@ -1,30 +1,29 @@
 from hardware import Motor
-from hardware import DifferentialDrive as DD
 from utime import sleep
 
 
 
 
 class JunctionHandler: # handling left and right motor
-    def __init(self, motors, sensor_vals, base, correction, junction, min_pwm, max_pwm, leftmotor, rightmotor):
-        self.motors = motors
-        self.sensor_vals = sensor_vals
-        self.base = base
-        self.correction = correction
-        self.junction = junction
+    def __init__(self, motors, min_pwm, max_pwm):
+        self.motors = motors  # motors must be instance of DifferentialDrive
         self.min_pwm = min_pwm
         self.max_pwm = max_pwm
-        self.leftmotor = leftmotor
-        self.rightmotor = rightmotor
+    
+    def detect_junction(self, vals):
+        if vals == [1,1,1,0]: return 'LEFT'
+        if vals == [0,1,1,1]: return 'RIGHT'
+        if vals == [1,1,1,1]: return 'CROSS'
+        return None
 
-    def apply_motor_speeds(base, correction, junction, min_pwm, max_pwm):
+    def apply_motor_speeds(self, base, correction, junction):
         left = base + correction
         right = base - correction
 
-        left = max(min_pwm, min(max_pwm, int(left)))
-        right = max(min_pwm, min(max_pwm, int(right)))
+        left = max(self.min_pwm, min(self.max_pwm, int(left)))
+        right = max(self.min_pwm, min(self.max_pwm, int(right)))
 
-        # DD.set(left, right)
+        self.motors.set(left, right)
 
         if junction == 0:
             sleep(0.03)
@@ -32,25 +31,21 @@ class JunctionHandler: # handling left and right motor
         elif junction == 10:
             sleep(0.4)
 
-        elif junction == 1:
-            turn(junction)
+        elif junction == 1 or junction == -1:
+            self.turn(junction)
 
-        elif junction == -1:
-            turn(junction)
-
-    def turn(dir):
+    def turn(self, dir):
+        sleep(0.45)
+        #---verify signs when we test---
         if dir == 1:
-            sleep(0.45)
-            DD.set(-55000, 55000)
+            self.motors.set(-55000, 55000)
             sleep(0.6)
         elif dir == -1:
-            sleep(0.45)
-            DD.set(-55000, 55000)
+            self.motors.set(-55000, 55000)
             sleep(0.6)
 
         elif dir == 2:
-            sleep(0.45)
-            DD.set(-55000, 55000)
+            self.motors.set(-55000, 55000)
             sleep(1.3)
 
     
