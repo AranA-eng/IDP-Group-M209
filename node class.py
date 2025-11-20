@@ -1,7 +1,13 @@
 #reversing thing needed for about turns & leaving shelves
-#needs to 
+#after final turn, stop after 0.2 secs
+#reversing thing needed for about turns & leaving shelves
+#after final turn, stop after 0.2 secs
 
 import math #needed for isclose
+
+current = 0
+facing = "f" #needs initial orientation
+turn_bin = []
 
 class Node:
     def __init__(self, data):
@@ -13,11 +19,6 @@ class Node:
         self.minor = None
         self.minorfdir = None #direction of turning for minor path is from forward
         self.minorbdir = None
-
-initial = Node(-1)
-initial.next = Node(0)
-initial.nextdir = 10
-facing = "f" #needs initial orientation
 
 nodedirections = { #using junc cases: 10 ignore, 1 left, -1 right
 0: (10, 10, 1, -1, -1), #nextdir, prevdir, minorfdir, minorbdir, minor node number
@@ -65,6 +66,8 @@ nodedirections = { #using junc cases: 10 ignore, 1 left, -1 right
 42: (10, 10, 10, 10, None) #minor from 21
 }
 
+
+
 def build_circular_list(): #make 22 for main arc ----- rectify
     nodes_firstset = [Node(i) for i in range(22)]
 
@@ -97,27 +100,27 @@ def build_circular_list(): #make 22 for main arc ----- rectify
             
     return nodes_firstset, nodes_secondset
 
-
-
 nodes_firstset, nodes_secondset = build_circular_list()
 
-turn_bin = []
 
-def choose_dir_lower(start, end):
+
+
+
+def choose_dir_lower(start, end): #for the lower level (circular linked list)
     forward  = (end - start) % 22
     backward = (start - end) % 22
     return "f" if forward <= backward else "b"
 
-def choose_dir_upper(start, end):
+
+def choose_dir_upper(start, end): #for the upper level (normal linked list)
     return "f" if end > start else "b"
 
+
 def choose_dir(start, end):
-    #upper to upper
-    if start <= 21 and end <= 21:
+    if start <= 21 and end <= 21:  #upper to upper
         return choose_dir_lower(start, end)
     
-    #lower to lower
-    if start >= 22 and end >= 22:
+    if start >= 22 and end >= 22:  #lower to lower
         return choose_dir_lower(start, end)
     
     if start <= 21: #go to 11
@@ -125,7 +128,8 @@ def choose_dir(start, end):
     else: #go to 30
         return choose_dir_lower(start, 30)
 
-def cross_ramp(start, way):
+
+def cross_ramp(start, way): #appending the minor turn when reaching the bridge node
     global turn_bin
     
     if way == "f":
@@ -137,20 +141,20 @@ def cross_ramp(start, way):
 
 
 
-
-def traverse(start_node, end_node, way="f", skip_first = False, first_call = True):
+def traverse(start_node, end_node, way="f", skip_first = False, first_call = True, crossing_bridge = False):
     global turn_bin
-    if first_call == True:
-        turn_bin = []
     global facing
+
+    if first_call == True:
+        turn_bin = [] #empty the turn bin
     
     if start_node < 22:
-        current = nodes_firstset[start_node]
+        current = nodes_firstset[start_node] #access first linked list
     else:
-        current = nodes_secondset[start_node - 22]
+        current = nodes_secondset[start_node - 22] #access second linked list
 
-    first_main  = start_node <= 21
-    second_main = end_node <= 21
+    first_main  = start_node <= 21   #checking if start is on lower level
+    second_main = end_node <= 21   #checking if start is on upper level
 
 
 
@@ -158,22 +162,18 @@ def traverse(start_node, end_node, way="f", skip_first = False, first_call = Tru
 
         if first_main:   #lower level
             way = choose_dir_lower(start_node, end_node)
-        else:   #upper section
+        else:   #upper level
             way = choose_dir_upper(start_node, end_node)
 
 
 
     else:   #going to bridge
-        if start_node < end_node:
-            bridge = nodes_firstset[11]   #going to node 11 to ascend
-        else:
-            bridge = nodes_secondset[8]   #going to node 30 to descend
+        bridge = nodes_firstset[11] if (start_node < end_node) else nodes_secondset[8]  #going to node 11/30
 
         #go from start to bridge
         way_to_bridge = choose_dir(start_node, bridge.data)
-        reached = traverse(start_node, bridge.data, way_to_bridge, first_call = False)
-        facing = way_to_bridge
-        cross_ramp(reached, way_to_bridge)
+        current = traverse(start_node, bridge.data, way_to_bridge, first_call = False, crossing_bridge = True) #do not want to append the nextdir of the bridge node
+        cross_ramp(current, way_to_bridge)
         
         #jump to minor node
         current = bridge.minor
@@ -184,7 +184,7 @@ def traverse(start_node, end_node, way="f", skip_first = False, first_call = Tru
         
         if way_from_bridge == "f": #needs an extra turn when crossing ramp
             if current.data == 11:
-                adjustment = -1
+                adjustment = -1 #turn right if end of bridge you finish on is 11
             else:
                 adjustment = 1
         else:
@@ -199,26 +199,38 @@ def traverse(start_node, end_node, way="f", skip_first = False, first_call = Tru
         return
     
     
+    
+    pop_check = False
 
-    if facing == way:
+    if facing == way: #need an extra 180 turn if not facing the right way
         pass
     else:
         #print(2)
         turn_bin.append(2)
         facing = way
+        pop_check = True #need to pop element 1 if you had to do a 180 turn
         
-    first_iter = True 
+    first_iter = True
+    
+    
+    
     while True:
         #print(current.data)
 
         if current.data == end_node:
             #print(current.data)
             #print(facing)
-            #turn_bin.append(current.data)
+            #if not crossing_bridge:
+            #    if way == "f":
+            #        turn_bin.append(current.nextdir)
+            #    else:
+            #        turn_bin.append(current.prevdir)
+            if pop_check:
+                turn_bin.pop(1)
             return current
 
         if skip_first and first_iter:
-            first_iter = False
+            first_iter = False #basically don't append first value, this was a previous issue
         else:
             if way == "f":
                 #print(current.data, current.nextdir)
@@ -233,9 +245,27 @@ def traverse(start_node, end_node, way="f", skip_first = False, first_call = Tru
         else:
             current = current.prev
 
+#def finish():
+#    traverse(
 
-traverse(2, 0)
+
+#traverse(0, 12)
+#print(turn_bin)
+#print(facing)
+#traverse(12,10)
+#print(turn_bin)
+#print(facing)
+#traverse(10,31)
+#print(turn_bin)
+#print(facing)
+
+traverse(0,10)
 print(turn_bin)
+print(facing)
+traverse(10,31)
+print(turn_bin)
+print(facing)
+
 #traverse(20, 3)
 #print(turn_bin)
 
@@ -261,3 +291,6 @@ colour_to_number = {
 #obj = build_circular_list()[0][4]
 #obj = build_circular_list()[0][11]
 #print(obj.data, obj.nextdir, obj.prevdir, obj.minorfdir, obj.minorbdir, obj.minor.data, obj.next.data, obj.prev.data) #need an if prev is None ...
+
+
+
