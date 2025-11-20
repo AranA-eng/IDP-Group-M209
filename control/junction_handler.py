@@ -5,6 +5,7 @@ from utime import sleep
 
 
 class JunctionHandler: # handling left and right motor
+    """class for handling corners"""
     def __init__(self, motors, min_pwm, max_pwm):
         self.motors = motors  # motors must be instance of DifferentialDrive
         self.min_pwm = min_pwm
@@ -37,11 +38,11 @@ class JunctionHandler: # handling left and right motor
     def turn(self, dir):
         sleep(0.45)
         #---verify signs when we test---
-        if dir == 1:
+        if dir == 1: #left turn
             self.motors.set(-55000, 55000)
             sleep(0.6)
-        elif dir == -1:
-            self.motors.set(-55000, 55000)
+        elif dir == -1: #right turn
+            self.motors.set(55000, -55000)
             sleep(0.6)
 
         elif dir == 2:

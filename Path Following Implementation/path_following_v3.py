@@ -74,6 +74,9 @@ dt_ms = 10 # control loop period in ms
 base_speed = 45000 # base speed
 
 pid = PID(Kp, Ki, Kd, dt_ms, out_min= - max_pwm, out_max = max_pwm)
+tc = turn_counter()
+drive = mo.DiffDrive(left_motor, right_motor)
+jh = JunctionHandler(drive, 0, max_pwm)
 
 try: 
     while True: 
@@ -83,14 +86,15 @@ try:
         corr = pid.update(err)
         direction = sen.IRSensorArray.detect_junction(vals)
 
-        junction = turn_counter.direction(vals, left_juncs, right_juncs, cross_juncs)
+        junction = tc.direction(vals, left_juncs, right_juncs, cross_juncs)
 
-        if turn_counter.cross_junc_count == 6 or turn_counter.left_junc_count == 4 or turn_counter.right_junc_count == 17:
+        if tc.cross_junc_count == 6 or tc.left_junc_count == 4 or tc.right_junc_count == 17:
             sleep(1.5)
             mo.DiffDrive.stop()
             break
+
+        jh.apply_motor_speeds(base_speed, corr, junction)
         
-        JunctionHandler.apply_motor_speeds(base_speed, corr, junction)
         elapsed = time.ticks_diff(time.ticks_ms(), t_start)
         if elapsed < dt_ms:
             time.sleep_ms(dt_ms - elapsed)
