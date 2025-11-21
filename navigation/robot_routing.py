@@ -313,10 +313,10 @@ if __name__ == "__main__":
     router = Router(graph)
 
     # replicate original tests
-    r1 = router.route(0, 10)
+    r1 = router.route(0, 30)
     print("route 0->10 turns:", r1.turn_sequence)
     print("final facing:", r1.final_facing)
 
-    r2 = router.route(10, 31)
+    r2 = router.route(30, 10)
     print("route 10->31 turns:", r2.turn_sequence)
     print("final facing:", r2.final_facing)
