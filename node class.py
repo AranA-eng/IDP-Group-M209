@@ -232,7 +232,7 @@ turn_bin = []
 nodes_firstset, nodes_secondset = build_circular_list()
 
 
-traverse(0,10)
+traverse(-1,10)
 print(turn_bin)
 print(facing)
 traverse(10,31)

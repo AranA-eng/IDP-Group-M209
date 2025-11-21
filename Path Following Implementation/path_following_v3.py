@@ -84,7 +84,7 @@ try:
         vals = sensors.read()
         err = sen.IRSensorArray.compute_error(vals)
         corr = pid.update(err)
-        direction = sen.IRSensorArray.detect_junction(vals)
+        direction = jh.detect_junction(vals)
 
         junction = tc.direction(vals, left_juncs, right_juncs, cross_juncs)
 
