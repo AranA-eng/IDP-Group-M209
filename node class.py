@@ -1,13 +1,6 @@
 #reversing thing needed for about turns & leaving shelves
 #after final turn, stop after 0.2 secs
 #reversing thing needed for about turns & leaving shelves
-#after final turn, stop after 0.2 secs
-
-import math #needed for isclose
-
-current = 0
-facing = "f" #needs initial orientation
-turn_bin = []
 
 class Node:
     def __init__(self, data):
@@ -68,7 +61,7 @@ nodedirections = { #using junc cases: 10 ignore, 1 left, -1 right
 
 
 
-def build_circular_list(): #make 22 for main arc ----- rectify
+def build_circular_list(): #make 22 for main arc
     nodes_firstset = [Node(i) for i in range(22)]
 
     #link nodes in a circular doubly-linked list
@@ -99,10 +92,6 @@ def build_circular_list(): #make 22 for main arc ----- rectify
             obj.minor = Node(nodedirections[int(obj.data)][4])
             
     return nodes_firstset, nodes_secondset
-
-nodes_firstset, nodes_secondset = build_circular_list()
-
-
 
 
 
@@ -197,11 +186,11 @@ def traverse(start_node, end_node, way="f", skip_first = False, first_call = Tru
         
         traverse(bridge.minor.data, end_node, way_from_bridge, skip_first = True, first_call = False)
         return
-    
-    
+
     
     pop_check = False
 
+    
     if facing == way: #need an extra 180 turn if not facing the right way
         pass
     else:
@@ -212,19 +201,10 @@ def traverse(start_node, end_node, way="f", skip_first = False, first_call = Tru
         
     first_iter = True
     
-    
-    
     while True:
         #print(current.data)
 
         if current.data == end_node:
-            #print(current.data)
-            #print(facing)
-            #if not crossing_bridge:
-            #    if way == "f":
-            #        turn_bin.append(current.nextdir)
-            #    else:
-            #        turn_bin.append(current.prevdir)
             if pop_check:
                 turn_bin.pop(1)
             return current
@@ -245,19 +225,12 @@ def traverse(start_node, end_node, way="f", skip_first = False, first_call = Tru
         else:
             current = current.prev
 
-#def finish():
-#    traverse(
 
+current = 0
+facing = "f" #needs initial orientation
+turn_bin = []
+nodes_firstset, nodes_secondset = build_circular_list()
 
-#traverse(0, 12)
-#print(turn_bin)
-#print(facing)
-#traverse(12,10)
-#print(turn_bin)
-#print(facing)
-#traverse(10,31)
-#print(turn_bin)
-#print(facing)
 
 traverse(0,10)
 print(turn_bin)
@@ -265,9 +238,6 @@ print(facing)
 traverse(10,31)
 print(turn_bin)
 print(facing)
-
-#traverse(20, 3)
-#print(turn_bin)
 
 
 colour_to_number = {
@@ -278,19 +248,16 @@ colour_to_number = {
 }
 
 
+
+#def finish():
+#    traverse(
+
+
 #def unload():
     #read colour sensor
     #
 #    if current_node.straight == 
 #    traverse(current_node, Node(colour_to_number[colour]), way)
 
-
-
-
-#build_circular_list()
-#obj = build_circular_list()[0][4]
-#obj = build_circular_list()[0][11]
-#print(obj.data, obj.nextdir, obj.prevdir, obj.minorfdir, obj.minorbdir, obj.minor.data, obj.next.data, obj.prev.data) #need an if prev is None ...
-
-
-
+#def finish():
+#    traverse(
