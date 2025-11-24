@@ -1,1 +1,224 @@
-from navigation import robot_routing
+from hardware import motor as mo
+from hardware import sensors as sen
+from control import PID, JunctionHandler
+from navigation import turn_counter
+from navigation import robot_routing as rt
+from machine import Pin, ADC, PWM, SoftI2C, I2C
+from libs.tcs3472_micropython.tcs3472 import tcs3472
+import time
+from utime import sleep
+
+# motor pins
+LEFT_PWM = 6
+LEFT_DIR = 7
+RIGHT_PWM = 5
+RIGHT_DIR = 4
+max_pwm = 65535
+
+left_motor = mo.Motor(LEFT_DIR, LEFT_PWM)
+right_motor = mo.Motor(RIGHT_DIR, RIGHT_PWM)
+
+
+
+# line sensor pins
+IR_PINS = [10, 12, 13, 11]
+line_sensor_weights = [-5.0, -2.0, 2.0, 5.0]
+sensors = sen.IRSensorArray( IR_PINS, line_sensor_weights)
+
+# Controller parameters
+# Gain
+Kp = -2300.0
+Ki = 20.0
+Kd = 7.5
+
+dt_ms = 10 # control loop period in ms
+base_speed = 45000 # base speed
+
+pid = PID(Kp, Ki, Kd, dt_ms, out_min= - max_pwm, out_max = max_pwm)
+tc = turn_counter()
+drive = mo.DiffDrive(left_motor, right_motor)
+jh = JunctionHandler(drive, 0, max_pwm)
+count = 0
+orange_counter = 0
+purple_counter = 0
+box_node = 0
+
+orange_branches = [3,4,5,6,7,8, 23, 24, 25, 26, 27, 28]
+purple_branches = [14, 15, 16, 17, 18, 19, 32, 33, 34, 35, 36, 37]
+
+junction_list = [10,10,10,1,1,1,1,-1]
+
+# map of the nodes
+nodedirections = {
+    0: (10, 10, 1, -1, -1),
+    1: (10, 10, 1, -1, 39),
+    2: (-1, 1, 1, 10, 40),
+    3: (10, 10, -1, 1, None),
+    4: (10, 10, -1, 1, None),
+    5: (10, 10, -1, 1, None),
+    6: (10, 10, -1, 1, None),
+    7: (10, 10, -1, 1, None),
+    8: (10, 10, -1, 1, None),
+    9: (10, 10, 10, 10, None),
+    10: (-1, 1, 10, 10, None),
+    11: (10, 10, -1, 1, 30), #link to other main branch
+    12: (-1, 1, 10, 10, None),
+    13: (10, 10, 10, 10, None),
+    14: (10, 10, -1, 1, None),
+    15: (10, 10, -1, 1, None),
+    16: (10, 10, -1, 1, None),
+    17: (10, 10, -1, 1, None),
+    18: (10, 10, -1, 1, None),
+    19: (10, 10, -1, 1, None),
+    20: (-1, 1, 10, -1, 41),
+    21: (10, 10, 1, -1, 42),
+    22: (10, 2, 10, 10, None),
+    23: (10, 10, -1, 1, None),
+    24: (10, 10, -1, 1, None),
+    25: (10, 10, -1, 1, None),
+    26: (10, 10, -1, 1, None),
+    27: (10, 10, -1, 1, None),
+    28: (10, 10, -1, 1, None),
+    29: (1, -1, 10, 10, None),
+    30: (10, 10, 1, -1, 11), #link to other main branch
+    31: (1, -1, 10, 10, None),
+    32: (10, 10, -1, 1, None),
+    33: (10, 10, -1, 1, None),
+    34: (10, 10, -1, 1, None),
+    35: (10, 10, -1, 1, None),
+    36: (10, 10, -1, 1, None),
+    37: (10, 10, -1, 1, None),
+    38: (10, 2, 10, 10, None),
+    39: (10, 10, 10, 10, None), #minor from 1
+    40: (10, 10, 10, 10, None), #minor from 2
+    41: (10, 10, 10, 10, None), #minor from 20
+    42: (10, 10, 10, 10, None), #minor from 21
+}
+
+graph = rt.RouteGraph(nodedirections) 
+router = rt.Router(graph)
+
+
+
+
+def turn_follower(junction_list, vals, count):
+    """ when sensor reads a junction, the junction identification is given by the corresponding counter
+        returns junction value, and the next count """
+    if vals == [1,1,1,0] or vals == [0,1,1,1] or vals ==[1,1,1,1]:
+        junction = junction_list[count]
+        next_count = count + 1 # next index in the junction_list
+        return junction, next_count
+
+def lift_mech(): 
+    return None
+
+def color_sensor_reading():
+    return None
+
+def box_detection():
+    a = True
+    return True
+
+
+color_node = {
+"green": 1,
+"blue": 2,
+"red": 20,
+"yellow": 21
+}
+
+ORANGE_END_NODE = 22
+PURPLE_END_NODE = 38
+
+
+def color_sensor_reading():
+    return None
+
+state = "FOLLOW_LINE"
+
+cold = ["Blue", "Green"]
+warm = ["Red", "Yellow"]
+
+
+
+try: 
+    while True: 
+        t_start = time.ticks_ms()
+        vals = sensors.read()
+        err = sen.IRSensorArray.compute_error(vals)
+        corr = pid.update(err)
+
+        # detect junction 
+        junction, count = turn_follower(junction_list, vals, count)
+
+        if state == "FOLLOW_LINE":
+            jh.apply_motor_speeds(base_speed, corr, junction)
+        
+            if box_detection(): 
+                state = "COLLECTING"
+                lift_mech()
+                color = color_sensor_reading()
+                box_node =  #--------------------------------------------
+                if box_node in orange_branches: 
+                    orange_counter += 1
+                if box_node in purple_branches:
+                    purple_counter += 1
+
+                #creating new route to deposit
+                target_node = color_node[color]
+                junction_list = turn_sequence(box_node, target_node)
+                count = 0 # reset counter
+
+                state = "NAV_TO_DEPOSIT"
+        
+        elif state == "NAV_TO_DEPOSIT":
+            jh.apply_motor_speeds(base_speed, corr, junction)
+            if at_deposit_location():
+                state = "DEPOSIT"
+        
+        elif state == "DEPOSIT":
+            deposit_mechanism()
+
+            if orange_counter < 4 and purple_counter < 4: 
+                # both areas have boxes left
+                if color in cold: 
+                    next_area = "ORANGE"
+                
+                if color in warm: 
+                    next_area = "PURPLE"
+                
+            elif orange_counter < 4:
+                next_area = "ORANGE"
+
+            elif purple_counter < 4:
+                next_area = "PURPLE"
+
+            else: 
+                state = "START" # Done all 8
+
+            if next_area == "ORANGE":
+                target_node = ORANGE_END_NODE
+            elif next_area == "PURPLE":
+                target_node = PURPLE_END_NODE
+            
+            else: 
+                target_node = START_NODE
+
+            junction_list = turn_sequence(current_node(), target_node)
+            count = 0
+
+            state = "FOLLOW_LINE"
+        
+
+        elapsed = time.ticks_diff(time.ticks_ms(), t_start)
+        if elapsed < dt_ms:
+            time.sleep_ms(dt_ms - elapsed)
+
+finally:
+    mo.DiffDrive.stop()
+
+
+
+
+
+
