@@ -312,8 +312,9 @@ if __name__ == "__main__":
     router = Router(graph)
 
     # replicate original tests
-    r1 = router.route(0, 30)
-    print("route 0->10 turns:", r1.turn_sequence)
+    r1 = router.route(0, 22)
+    print("route 0->22 turns:", r1.turn_sequence)
+    print("The node sequence is: ", r1.path_nodes)
     print("final facing:", r1.final_facing)
 
     r2 = router.route(30, 10)
