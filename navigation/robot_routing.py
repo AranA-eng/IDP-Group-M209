@@ -15,7 +15,7 @@ nodedirections = {
     8: (10, 10, -1, 1, None),
     9: (10, 10, 10, 10, None),
     10: (-1, 1, 10, 10, None),
-    11: (10, 10, -1, 1, 30),
+    11: (10, 10, -1, 1, 30), #link to other main branch
     12: (-1, 1, 10, 10, None),
     13: (10, 10, 10, 10, None),
     14: (10, 10, -1, 1, None),
@@ -34,7 +34,7 @@ nodedirections = {
     27: (10, 10, -1, 1, None),
     28: (10, 10, -1, 1, None),
     29: (1, -1, 10, 10, None),
-    30: (10, 10, 1, -1, 11),
+    30: (10, 10, 1, -1, 11), #link to other main branch
     31: (1, -1, 10, 10, None),
     32: (10, 10, -1, 1, None),
     33: (10, 10, -1, 1, None),
@@ -43,10 +43,10 @@ nodedirections = {
     36: (10, 10, -1, 1, None),
     37: (10, 10, -1, 1, None),
     38: (10, 2, 10, 10, None),
-    39: (10, 10, 10, 10, None),
-    40: (10, 10, 10, 10, None),
-    41: (10, 10, 10, 10, None),
-    42: (10, 10, 10, 10, None),
+    39: (10, 10, 10, 10, None), #minor from 1
+    40: (10, 10, 10, 10, None), #minor from 2
+    41: (10, 10, 10, 10, None), #minor from 20
+    42: (10, 10, 10, 10, None), #minor from 21
 }
 
 
@@ -175,7 +175,6 @@ class Router:
         """
         # reset state
         self.turn_bin = []
-        self.facing = "f"
         self.path_nodes = []
 
         # call internal traverse
