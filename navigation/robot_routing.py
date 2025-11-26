@@ -414,17 +414,26 @@ class Router:
 # Example usage (same behaviour as your original quick test)
 # ----------------------
 
-# if __name__ == "__main__":
-#     graph = RouteGraph(nodedirections)
-#     router = Router(graph)
+ORANGE_LOWER_1 = [3,4,5,6,7,8]
+if __name__ == "__main__":
+    graph = RouteGraph(nodedirections)
+    router = Router(graph)
 
-#     #replicate original tests
-#     r1 = router.route(37, -1)
-#     r1 = router.route(41, -1)
-#     print("route 39->41 turns:", r1.turn_sequence)
-#     print("The node sequence is: ", r1.path_nodes)
-#     print("final facing:", r1.final_facing)
+    def get_minor(n):
+        return router.graph.get_node(n).minor_id
 
-#     r2 = router.route(30, 10)
-#     print("route 10->31 turns:", r2.turn_sequence)
-#     print("final facing:", r2.final_facing)
+    def minor_list(list):
+        return [get_minor(i) for i in list]
+
+    #replicate original tests
+    r1 = router.route(-1, 54)
+    print("route -1->3 turns:", r1.turn_sequence)
+    print("The node sequence is: ", r1.path_nodes)
+    print(r1.path_nodes[-2])
+    print("final facing:", r1.final_facing)
+
+    r2 = router.route(55, 40)
+    print("route 55->40 turns:", r2.turn_sequence)
+    print("The node sequence is: ", r2.path_nodes)    
+    print("final facing:", r2.final_facing)
+    print(minor_list(ORANGE_LOWER_1))
