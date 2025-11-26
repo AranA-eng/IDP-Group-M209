@@ -247,6 +247,20 @@ class Router:
         
         # choose node object for start
         current = self.graph.get_node(start_node)
+
+        if true_start == true_end: # trivial case
+            print("already there!")
+            return true_start
+        
+        if start_node == end_node: # when box is detected, we want to enter the shelf 
+            if checkend:
+                self.turn_bin.append(current.minorfdir) if self.facing == "f" else self.turn_bin.append(current.minorbdir)
+                self.path_nodes.append(true_start)
+                self.path_nodes.append(true_end)
+                self.facing = "b"
+                return end_node
+        #won't be in a case where we only want to go from shelf to its major link so ommitted for time efficiency
+        
         # track where we came across for path debugging
         if first_call:
             # initialize
