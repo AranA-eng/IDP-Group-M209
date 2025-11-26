@@ -8,10 +8,10 @@ import time
 from utime import sleep
 
 # motor pins
-LEFT_PWM = 6
-LEFT_DIR = 7
-RIGHT_PWM = 5
-RIGHT_DIR = 4
+LEFT_PWM = 5
+LEFT_DIR = 4
+RIGHT_PWM = 6
+RIGHT_DIR = 7
 max_pwm = 65535
 
 left_motor = mo.Motor(LEFT_DIR, LEFT_PWM)
@@ -20,9 +20,9 @@ right_motor = mo.Motor(RIGHT_DIR, RIGHT_PWM)
 
 
 # line sensor pins
-IR_PINS = [10, 12, 13, 11]
-line_sensor_weights = [-5.0, -2.0, 2.0, 5.0]
-sensors = sen.IRSensorArray( IR_PINS, line_sensor_weights)
+IR_PINS = [12, 13, 11, 10]
+line_sensor_weights = [-5.0, -1.0, 1.0, 5.0]
+IR_sensors = sen.IRSensorArray( IR_PINS, line_sensor_weights)
 
 # --- Junction decisions for lap test ---
 right_juncs = {
@@ -66,9 +66,9 @@ cross_juncs = {
 
 # Controller parameters
 # Gain
-Kp = -2300.0
-Ki = 20.0
-Kd = 7.5
+Kp = 2300.0
+Ki = -20.0
+Kd = -7.5
 
 dt_ms = 10 # control loop period in ms
 base_speed = 45000 # base speed
@@ -81,8 +81,8 @@ jh = JunctionHandler(drive, 0, max_pwm)
 try: 
     while True: 
         t_start = time.ticks_ms()
-        vals = sensors.read()
-        err = sen.IRSensorArray.compute_error(vals)
+        vals = IR_sensors.read()
+        err = IR_sensors.compute_error(vals)
         corr = pid.update(err)
         direction = jh.detect_junction(vals)
 
@@ -90,7 +90,7 @@ try:
 
         if tc.cross_junc_count == 6 or tc.left_junc_count == 4 or tc.right_junc_count == 17:
             sleep(1.5)
-            mo.DiffDrive.stop()
+            drive.stop()
             break
 
         jh.apply_motor_speeds(base_speed, corr, junction)
@@ -100,10 +100,4 @@ try:
             time.sleep_ms(dt_ms - elapsed)
 
 finally:
-    mo.DiffDrive.stop()
-
-
-
-
-
-
+    drive.stop()
