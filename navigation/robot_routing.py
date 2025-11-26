@@ -4,6 +4,7 @@ from typing import Dict, Optional, List, Tuple
 
 # --- original node directions mapping (unchanged) ---
 nodedirections = {
+    -1: (10, 10, 1, -1, 0), #note that for the minor nodes, minordirs means the direction to turn at their major links to go f or b
     0: (10, 10, 1, -1, -1),
     1: (10, 10, 1, -1, 39),
     2: (-1, 1, 1, 10, 40),
@@ -43,10 +44,10 @@ nodedirections = {
     36: (10, 10, -1, 1, None),
     37: (10, 10, -1, 1, None),
     38: (10, 2, 10, 10, None),
-    39: (10, 10, 10, 10, None), #minor from 1
-    40: (10, 10, 10, 10, None), #minor from 2
-    41: (10, 10, 10, 10, None), #minor from 20
-    42: (10, 10, 10, 10, None), #minor from 21
+    39: (10, 10, 1, -1, 1), #minor from 1
+    40: (10, 10, 10, -1, 2), #minor from 2
+    41: (10, 10, 10, 1, 20), #minor from 20
+    42: (10, 10, 1, -1, 21), #minor from 21
 }
 
 
@@ -168,6 +169,9 @@ class Router:
         else:
             self.turn_bin.append(node.minorbdir)
 
+    def is_minor(self, node: int):
+        return node in [-1, 39, 40, 41, 42]
+
     # ---------- main traversal ----------
     def route(self, start: int, end: int) -> RouteResult:
         """
@@ -199,6 +203,21 @@ class Router:
         Internal traversal that mirrors the logic of your original function.
         Returns the final Node object reached (so callers can inspect it).
         """
+        #determine whether extra handling is needed at start/end
+        true_start = start_node
+        true_end = end_node
+        
+        true_start_node = self.graph.get_node(true_start)
+        true_end_node = self.graph.get_node(true_end)
+        
+        checkstart = self.is_minor(start_node)
+        checkend = self.is_minor(end_node)
+        
+        if checkstart:
+            start_node = true_start_node.minor.id
+        if checkend:
+            end_node = true_end_node.minor.id
+        
         # choose node object for start
         current = self.graph.get_node(start_node)
         # track where we came across for path debugging
@@ -224,6 +243,15 @@ class Router:
 
             # go from start to bridge
             way_to_bridge = self.choose_dir(start_node, bridge.id)
+            
+            if checkstart:
+                self.turn_bin.append(2)
+                self.path_nodes.append(true_start)
+                if way == "f":
+                    self.turn_bin.append(true_start_node.minorfdir)
+                else:
+                    self.turn_bin.append(true_start_node.minorbdir)
+            
             # recursively traverse to the bridge (do not append the bridge's nextdir in that call)
             bridge_node = self._traverse(start_node, bridge.id, way_to_bridge, first_call=False, crossing_bridge=True)
             # append the ramp turn for crossing the bridge
@@ -253,20 +281,48 @@ class Router:
 
             # continue traversal from the minor node to the final destination
             self._traverse(bridge_node.minor.id, end_node, way_from_bridge, skip_first=True, first_call=False)
+        
+            # checkstart and checkend logic are needed in this branch because this never enters the while loop with the checks true
+            if checkend:
+                if self.facing == "f":
+                    self.turn_bin.append(self.graph.get_node(end_node).minorfdir)
+                else:
+                    self.turn_bin.append(self.graph.get_node(end_node).minorbdir)
+                self.path_nodes.append(true_end)
+                self.facing = "b"
+           
+            # need to pop the extra turn arising from the junction value of the start's major link
+            if checkstart:
+                self.turn_bin.pop(2)  
+            
+            # need to change the initial turn from 2 (since node -1 is minor) into a 10 (because the robot doesn't start facing backwards)
+            if true_start == -1:
+                self.turn_bin[0] = 10
+            
             return current
 
         # At this point, 'way' is set to "f" or "b" for regular traversal on a single level
         pop_check = False
 
-        # If we are not facing the desired way, we need an extra 180-turn (encoded as 2)
-        if self.facing == way:
-            # already facing correct way; nothing to do
-            pass
-        else:
-            # append 180-degree turn
+        # Handling the output in case you start at a minor node, just before entering the loop
+        if checkstart:
             self.turn_bin.append(2)
-            self.facing = way
-            pop_check = True  # we'll need special handling if we later skip first appended turn
+            self.path_nodes.append(true_start)
+            if way == "f":
+                self.turn_bin.append(true_start_node.minorfdir)
+            else:
+                self.turn_bin.append(true_start_node.minorbdir)
+        
+        else:
+            # If we are not facing the desired way, we need an extra 180-turn (encoded as 2)
+            if self.facing == way:
+                # already facing correct way; nothing to do
+                pass
+            else:
+                # append 180-degree turn
+                self.turn_bin.append(2)
+                self.facing = way
+                pop_check = True  # we'll need special handling if we later skip first appended turn
 
         first_iter = True
 
@@ -282,6 +338,22 @@ class Router:
                     if len(self.turn_bin) > 1:
                         # original code: turn_bin.pop(1)
                         self.turn_bin.pop(1)
+                        
+                if checkend:
+                    if self.facing == "f":
+                        self.turn_bin.append(self.graph.get_node(end_node).minorfdir)
+                    else:
+                        self.turn_bin.append(self.graph.get_node(end_node).minorbdir)
+                    self.path_nodes.append(true_end)
+                    self.facing = "b"
+                
+                # need to pop the extra turn arising from the junction value of the start's major link
+                if checkstart:
+                    self.turn_bin.pop(2)  
+                
+                # need to change the initial turn from 2 (since node -1 is minor) into a 10 (because the robot doesn't start facing backwards)
+                if true_start == -1:
+                    self.turn_bin[0] = 10
                 return current
 
             # skip appending the first node's turn if requested (bridge handoff case)
@@ -314,7 +386,8 @@ class Router:
 
     # replicate original tests
 #    r1 = router.route(0, 22)
-#    print("route 0->22 turns:", r1.turn_sequence)
+#    r1 = router.route(22, -1)
+#    print("route 39->41 turns:", r1.turn_sequence)
 #    print("The node sequence is: ", r1.path_nodes)
 #    print("final facing:", r1.final_facing)
 
