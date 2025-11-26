@@ -152,11 +152,11 @@ def lift_mech(current_node, vals):
         drive.stop()
         #set current node to current.minor
 
-        current_node = 
+        minor_node = router.graph.get_node(current_node).minor # ------------------
 
     actuator.setheight(34)
     actuator.stop()
-    return None
+    return minor_node
 
     
 
