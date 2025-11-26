@@ -1,5 +1,6 @@
 from hardware import motor as mo
 from hardware import sensors as sen
+from hardware import Actuator as act
 from control import PID, JunctionHandler
 from navigation import robot_routing as rt
 from machine import Pin, ADC, PWM, SoftI2C, I2C
@@ -100,10 +101,13 @@ def turn_follower(junction_list, vals, count):
         return junction, next_count
 
 
-
+actuator1 = act(dirPin=0, PWMPin=1)
 try: 
     while True: 
         t_start = time.ticks_ms()
+
+        actuator1.setheight(27)
+
         vals = IR_sensors.read()
         err = IR_sensors.compute_error(vals)
         corr = pid.update(err)
