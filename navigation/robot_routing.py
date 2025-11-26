@@ -440,7 +440,7 @@ if __name__ == "__main__":
         return [get_minor(i) for i in list]
 
     #replicate original tests
-    r1 = router.route(-1, 54)
+    r1 = router.route(19, 54)
     print("route -1->3 turns:", r1.turn_sequence)
     print("The node sequence is: ", r1.path_nodes)
     print(r1.path_nodes[-2])
