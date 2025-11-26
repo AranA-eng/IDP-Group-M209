@@ -125,6 +125,7 @@ class TCS34725: # the colour sensor
         self.onoff.value(0)
         sleep(0.5)
         clear, red, green, blue = self.read_raw()
+        self.disable()
         self.onoff.value(1)
         return clear
 
