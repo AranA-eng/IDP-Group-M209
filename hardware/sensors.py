@@ -27,8 +27,8 @@ class IRSensorArray:
 
 
 class VL53L0X: # the VL53L0X dist sensor, expected config (0, 8, 9)
-    def __init__(self, i2c_id, sda_pin, scl_pin):
-        self.i2c = I2C(id = i2c_id, sda = Pin(sda_pin), scl = Pin(scl_pin))
+    def __init__(self, i2c):
+        self.i2c = i2c
         self.sensor = VL53L0X(i2c)
     
     def read(self):
