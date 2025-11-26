@@ -1,5 +1,6 @@
 from hardware import motor as mo
 from hardware import sensors as sen
+from hardware import linear_actuator as act
 from control import PID, JunctionHandler
 from navigation import turn_counter
 from navigation import robot_routing as rt
@@ -15,15 +16,19 @@ RIGHT_PWM = 5
 RIGHT_DIR = 4
 max_pwm = 65535
 
+# actuator pins
+dirPin = 0
+PWMPin = 1
+
 left_motor = mo.Motor(LEFT_DIR, LEFT_PWM)
 right_motor = mo.Motor(RIGHT_DIR, RIGHT_PWM)
-
+actuator = act.Actuator(dirPin, PWMPin)
 
 
 # line sensor pins
 IR_PINS = [10, 12, 13, 11]
 line_sensor_weights = [-5.0, -2.0, 2.0, 5.0]
-sensors = sen.IRSensorArray( IR_PINS, line_sensor_weights)
+sensors = sen.IRSensorArray(IR_PINS, line_sensor_weights)
 
 # Controller parameters
 # Gain
@@ -43,10 +48,10 @@ orange_counter = 0
 purple_counter = 0
 box_node = 0
 
-orange_branches = [3,4,5,6,7,8, 23, 24, 25, 26, 27, 28]
+orange_branches = [3, 4, 5, 6, 7, 8, 23, 24, 25, 26, 27, 28]
 purple_branches = [14, 15, 16, 17, 18, 19, 32, 33, 34, 35, 36, 37]
 
-junction_list = [10,10,10,1,1,1,1,-1]
+junction_list = []
 
 # map of the nodes
 nodedirections = {
@@ -89,15 +94,15 @@ nodedirections = {
     36: (10, 10, -1, 1, None),
     37: (10, 10, -1, 1, None),
     38: (10, 2, 10, 10, None),
-    39: (10, 10, 10, 10, None), #minor from 1
-    40: (10, 10, 10, 10, None), #minor from 2
-    41: (10, 10, 10, 10, None), #minor from 20
-    42: (10, 10, 10, 10, None), #minor from 21
+    39: (10, 10, 10, 10, 1), #minor from 1
+    40: (10, 10, 10, 10, 2), #minor from 2
+    41: (10, 10, 10, 10, 20), #minor from 20
+    42: (10, 10, 10, 10, 20), #minor from 21
 }
 
 graph = rt.RouteGraph(nodedirections) 
 router = rt.Router(graph)
-
+junction_list = router.route(0, 22)
 
 
 
@@ -109,8 +114,27 @@ def turn_follower(junction_list, vals, count):
         next_count = count + 1 # next index in the junction_list
         return junction, next_count
 
-def lift_mech(): 
-    return None
+def lift_mech(router, ):                                                          #need to put DiffDrive or motors in this
+        current = router.current
+        #needs to turn be junction == current.minorfdir or current.minorbdir depending on facing at that node
+        if current.data < 21: #on lower level
+            actuator.setheight(27)
+        else: #on upper level
+            actuator.setheight(4)  
+        
+        #set motor speeds to very low and stop when vals read [0,0,0,0]
+        
+        actuator.setheight(34)
+        actuator.stop()
+        
+        #reverse, 180 turn, forward until [1,1,1,1], turn at junction by (-1)(current.minorfdir if facing == "f" else current.minorbdir)
+
+def unload():
+    actuator.setheight(0)
+    #reverse a little bit
+    actuator.setheight(20) #keep fork off ground in case we go to ramp
+    actuator.stop()
+    return
 
 def color_sensor_reading():
     return None
@@ -129,10 +153,9 @@ color_node = {
 
 ORANGE_END_NODE = 22
 PURPLE_END_NODE = 38
+START_NODE = 0
 
 
-def color_sensor_reading():
-    return None
 
 state = "FOLLOW_LINE"
 
@@ -158,26 +181,26 @@ try:
                 state = "COLLECTING"
                 lift_mech()
                 color = color_sensor_reading()
-                box_node =  #--------------------------------------------
+                box_node =  #--------------------------------------------         #current node? 
                 if box_node in orange_branches: 
                     orange_counter += 1
                 if box_node in purple_branches:
                     purple_counter += 1
 
-                #creating new route to deposit
+                # creating new route to deposit
                 target_node = color_node[color]
-                junction_list = turn_sequence(box_node, target_node)
+                junction_list = turn_sequence(box_node, target_node)               #is this meant to be router.route(box_node, target_node)?
                 count = 0 # reset counter
 
                 state = "NAV_TO_DEPOSIT"
         
         elif state == "NAV_TO_DEPOSIT":
             jh.apply_motor_speeds(base_speed, corr, junction)
-            if at_deposit_location():
+            if at_deposit_location():                                              #
                 state = "DEPOSIT"
         
         elif state == "DEPOSIT":
-            deposit_mechanism()
+            deposit_mechanism()                                                     #being written
 
             if orange_counter < 4 and purple_counter < 4: 
                 # both areas have boxes left
@@ -204,9 +227,9 @@ try:
             else: 
                 target_node = START_NODE
 
-            junction_list = turn_sequence(current_node(), target_node)
-            count = 0
-
+            junction_list = turn_sequence(current_node(), target_node)                    #is this meant to be router.route(current_node(), target_node)?
+            count = 0                                                                     #also, current needs to be reassigned based on when the interrupt was. we know the node sequence and the index of the node the box was found at
+            
             state = "FOLLOW_LINE"
         
 
@@ -216,8 +239,6 @@ try:
 
 finally:
     mo.DiffDrive.stop()
-
-
 
 
 
