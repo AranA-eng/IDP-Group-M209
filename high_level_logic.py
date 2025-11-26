@@ -208,6 +208,7 @@ try:
 
         # STATE MACHINE
         if state == "FOLLOW_LINE":
+            actuator.setheight(20)
             jh.apply_motor_speeds(base_speed, corr, junction)
 
             distance = distance_sensor.read() #-------------------------------------------------------------------------
