@@ -2,7 +2,6 @@ from hardware import motor as mo
 from hardware import sensors as sen
 from hardware import linear_actuator as act
 from control import PID, JunctionHandler
-from navigation import turn_counter
 from navigation import robot_routing as rt
 from machine import Pin, ADC, PWM, SoftI2C, I2C
 from libs.tcs3472_micropython.tcs3472 import tcs3472
@@ -40,7 +39,6 @@ dt_ms = 10 # control loop period in ms
 base_speed = 45000 # base speed
 
 pid = PID(Kp, Ki, Kd, dt_ms, out_min= - max_pwm, out_max = max_pwm)
-tc = turn_counter()
 drive = mo.DiffDrive(left_motor, right_motor)
 jh = JunctionHandler(drive, 0, max_pwm)
 count = 0
@@ -50,8 +48,6 @@ box_node = 0
 
 orange_branches = [3, 4, 5, 6, 7, 8, 23, 24, 25, 26, 27, 28]
 purple_branches = [14, 15, 16, 17, 18, 19, 32, 33, 34, 35, 36, 37]
-
-junction_list = []
 
 # map of the nodes
 nodedirections = {
@@ -100,9 +96,7 @@ nodedirections = {
     42: (10, 10, 10, 10, 20), #minor from 21
 }
 
-graph = rt.RouteGraph(nodedirections) 
-router = rt.Router(graph)
-junction_list = router.route(0, 22)
+
 
 
 
@@ -139,10 +133,7 @@ def unload():
 def color_sensor_reading():
     return None
 
-def box_detection():
-    a = True
-    return True
-
+threshold = 100
 
 color_node = {
 "green": 1,
@@ -151,52 +142,82 @@ color_node = {
 "yellow": 21
 }
 
+color_node_val = [1,2,20,21]
+
 ORANGE_END_NODE = 22
 PURPLE_END_NODE = 38
 START_NODE = 0
-
-
 
 state = "FOLLOW_LINE"
 
 cold = ["Blue", "Green"]
 warm = ["Red", "Yellow"]
 
+junction_sensor_values = [[0,1,1,1], [1,1,1,0], [1,1,1,1]]
 
+graph = rt.RouteGraph(nodedirections) 
+router = rt.Router(graph)
+junction_list = router.route(0, 22)
+turns = junction_list.turn_sequence
+nodes = junction_list.path_nodes
+
+def box_detection(vals, current_node, distance, threshold):
+    # the line sensor must read the junction values
+    on_junction = vals in junction_sensor_values
+
+    # the node at which the sensor just read must be in the bay areas
+    in_bay_area = current_node in orange_branches or current_node in purple_branches
+    
+    # the distance sensor must be less than the threshold
+    box_close = distance < threshold
+    return on_junction and in_bay_area and box_close
 
 try: 
     while True: 
         t_start = time.ticks_ms()
+
         vals = sensors.read()
         err = sen.IRSensorArray.compute_error(vals)
         corr = pid.update(err)
 
-        # detect junction 
-        junction, count = turn_follower(junction_list, vals, count)
+        # CURRENT JUNCTION
+        current_node = nodes[count]
+        
+        # once new node is detected, returns the behaviour that needs to happen, as well as incrementing count
+        result = turn_follower(turns, vals, count)
+        if result: 
+            junction, count = result
+        else: 
+            junction = 0 # go straight
 
+        # STATE MACHINE
         if state == "FOLLOW_LINE":
             jh.apply_motor_speeds(base_speed, corr, junction)
-        
-            if box_detection(): 
+
+            distance = distance_sensor.read() #-------------------------------------------------------------------------
+            if box_detection(vals, current_node, distance, threshold):
+                
                 state = "COLLECTING"
                 lift_mech()
                 color = color_sensor_reading()
-                box_node =  #--------------------------------------------         #current node? 
-                if box_node in orange_branches: 
-                    orange_counter += 1
-                if box_node in purple_branches:
-                    purple_counter += 1
+
+                box_node = current_node
+
+                if box_node in orange_branches: orange_counter += 1
+                if box_node in purple_branches: purple_counter += 1
 
                 # creating new route to deposit
                 target_node = color_node[color]
-                junction_list = turn_sequence(box_node, target_node)               #is this meant to be router.route(box_node, target_node)?
+                junction_list = router.route(box_node, target_node)
+                turns = junction_list.turn_sequence
+                nodes = junction_list.path_nodes
                 count = 0 # reset counter
 
                 state = "NAV_TO_DEPOSIT"
         
         elif state == "NAV_TO_DEPOSIT":
             jh.apply_motor_speeds(base_speed, corr, junction)
-            if at_deposit_location():                                              #
+            if current_node in color_node_val:                                              #
                 state = "DEPOSIT"
         
         elif state == "DEPOSIT":
@@ -219,6 +240,7 @@ try:
             else: 
                 state = "START" # Done all 8
 
+
             if next_area == "ORANGE":
                 target_node = ORANGE_END_NODE
             elif next_area == "PURPLE":
@@ -227,7 +249,9 @@ try:
             else: 
                 target_node = START_NODE
 
-            junction_list = turn_sequence(current_node(), target_node)                    #is this meant to be router.route(current_node(), target_node)?
+            junction_list = router.route(current_node, target_node)                #is this meant to be router.route(current_node(), target_node)?
+            turns = junction_list.turn_sequence
+            nodes = junction_list.path_nodes
             count = 0                                                                     #also, current needs to be reassigned based on when the interrupt was. we know the node sequence and the index of the node the box was found at
             
             state = "FOLLOW_LINE"

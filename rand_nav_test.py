@@ -52,4 +52,5 @@ router = Routing.Router(graph)
 
 r1 = router.route(0,22)
 
+print(r1.turn_sequence)
 print(r1.path_nodes[0])
