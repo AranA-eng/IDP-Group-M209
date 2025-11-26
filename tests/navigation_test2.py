@@ -259,6 +259,11 @@ try:
                 STATE = "COLLECTING"
 
                 minor_node = lift_mech(current_node, vals)
+                
+                drive.set(-10000, -10000)
+                sleep(0.3)
+                drive.stop()                                                                                        #it needs to reverse out the shelf a bit then it needs to complete the first turn
+                
                 current_node = minor_node
 
                 # plan route to deposit node 40
