@@ -46,7 +46,7 @@ nodedirections = {
     38: (10, 2, 10, 10, None),
     39: (10, 10, 1, -1, 1), #minor from 1
     40: (10, 10, 10, -1, 2), #minor from 2
-    41: (10, 10, 10, 1, 20), #minor from 20
+    41: (10, 10, 1, 10, 20), #minor from 20
     42: (10, 10, 1, -1, 21), #minor from 21
 }
 
@@ -249,8 +249,11 @@ class Router:
                 self.path_nodes.append(true_start)
                 if way == "f":
                     self.turn_bin.append(true_start_node.minorfdir)
+
                 else:
                     self.turn_bin.append(true_start_node.minorbdir)
+                
+                self.facing = way
             
             # recursively traverse to the bridge (do not append the bridge's nextdir in that call)
             bridge_node = self._traverse(start_node, bridge.id, way_to_bridge, first_call=False, crossing_bridge=True)
@@ -310,9 +313,12 @@ class Router:
             self.path_nodes.append(true_start)
             if way == "f":
                 self.turn_bin.append(true_start_node.minorfdir)
+
             else:
                 self.turn_bin.append(true_start_node.minorbdir)
-        
+            
+            self.facing = way
+                
         else:
             # If we are not facing the desired way, we need an extra 180-turn (encoded as 2)
             if self.facing == way:
@@ -385,8 +391,8 @@ class Router:
 #    router = Router(graph)
 
     # replicate original tests
-#    r1 = router.route(0, 22)
-#    r1 = router.route(22, -1)
+#    r1 = router.route(37, -1)
+    #r1 = router.route(41, -1)
 #    print("route 39->41 turns:", r1.turn_sequence)
 #    print("The node sequence is: ", r1.path_nodes)
 #    print("final facing:", r1.final_facing)
