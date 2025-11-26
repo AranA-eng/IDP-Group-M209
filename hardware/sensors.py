@@ -1,6 +1,9 @@
 from machine import Pin, ADC, PWM, SoftI2C, I2C
 from libs.VL53L0X.VL53L0X import VL53L0X
 import time
+from utime import sleep
+from libs.tcs3472_micropython.tcs3472 import tcs3472
+from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8801, DFRobot_TMF8701
 
 
 class IRSensorArray: 
@@ -23,7 +26,7 @@ class IRSensorArray:
         return 0 if weight_sum == 0 else total/weight_sum
 
 
-class TOFSensor:
+class VL53L0X: # the VL53L0X dist sensor, expected config (0, 8, 9)
     def __init__(self, i2c_id, sda_pin, scl_pin):
         self.i2c = I2C(id = i2c_id, sda = Pin(sda_pin), scl = Pin(scl_pin))
         self.sensor = VL53L0X(i2c)
@@ -31,32 +34,12 @@ class TOFSensor:
     def read(self):
         time.sleep_ms(30)
         return self.sensor.read()
-        
     
-class TOFSensorArray:
-    def __init__(self, config):
-        
-        #config = [
-        #    (0, 8, 9),
-        #    #() enter second sensor pins
-        #]
-        
-        self.sensors = [
-            TOFSensor(i2c_id, sda, scl) for (i2c_id, sda, scl) in config
-        ]
-        
-        
-    def read_left(self):
-        return self.sensors[0].read() #assuming 0,8,9 corresponds to the left sensor
-    
-    def read_right(self):
-        return self.sensors[1].read()
-
 #in main.py: import TOFSensorArray, then tof_array = TOFSensorArray([],[])
 #left_distance = tof_array.read_left()
 #right_distance = tof_array.read_right()
 
-class TCS34725:
+class TCS34725: # the colour sensor
     def __init__(self, i2c, integration_time=0xEB, gain=0x01):
         self.i2c = i2c
         self.integration_time = integration_time
