@@ -46,8 +46,8 @@ sensors = sen.IRSensorArray(IR_PINS, line_sensor_weights)
 
 # Controller parameters
 # Gain
-Kp = -2300.0
-Ki = 20.0
+Kp = 2300.0
+Ki = -20.0
 Kd = 7.5
 
 dt_ms = 10 # control loop period in ms
