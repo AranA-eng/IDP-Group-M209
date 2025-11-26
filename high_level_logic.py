@@ -42,7 +42,7 @@ TCS3472 = TCS34725(i2c_colour, onoffpin = onoff)								#now can write TCS3472.r
 # line sensor pins
 IR_PINS = [10, 12, 13, 11]
 line_sensor_weights = [-5.0, -2.0, 2.0, 5.0]
-sensors = sen.IRSensorArray(IR_PINS, line_sensor_weights)
+IR_sensors = sen.IRSensorArray(IR_PINS, line_sensor_weights)
 
 # Controller parameters
 # Gain
@@ -139,6 +139,27 @@ def lift_mech(router, ):                                                        
         
         #reverse, 180 turn, forward until [1,1,1,1], turn at junction by (-1)(current.minorfdir if facing == "f" else current.minorbdir)
 
+def lift_mech(current_node, vals):
+    if current_node < 21:
+        actuator.setheight(27)
+    else:
+        actuator.setheight(4)
+
+    # setting motor speed to be very low and stop when the values read [0,0,0,0]
+    drive.set(10000,10000)
+    if vals == [0,0,0,0]:
+        time.sleep(0.2) # experiment w values here
+        drive.stop()
+        #set current node to current.minor
+
+        current_node = 
+
+    actuator.setheight(34)
+    actuator.stop()
+    return None
+
+    
+
 def unload():
     actuator.setheight(0)
     #reverse a little bit
@@ -192,8 +213,8 @@ try:
     while True: 
         t_start = time.ticks_ms()
 
-        vals = sensors.read()
-        err = sen.IRSensorArray.compute_error(vals)
+        vals = IR_sensors.read()
+        err = IR_sensors.compute_error(vals)
         corr = pid.update(err)
 
         # CURRENT JUNCTION
@@ -218,7 +239,7 @@ try:
                 lift_mech()
                 color = color_sensor_reading()
 
-                box_node = current_node
+                box_node = current_node #current_node.minor
 
                 if box_node in orange_branches: orange_counter += 1
                 if box_node in purple_branches: purple_counter += 1
