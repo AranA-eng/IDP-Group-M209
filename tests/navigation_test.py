@@ -102,11 +102,13 @@ def turn_follower(junction_list, vals, count):
 
 
 actuator1 = act(dirPin=0, PWMPin=1)
+actuator1.reset()
+actuator1.setheight(27)
+
 try: 
     while True: 
         t_start = time.ticks_ms()
 
-        actuator1.setheight(27)
 
         vals = IR_sensors.read()
         err = IR_sensors.compute_error(vals)
