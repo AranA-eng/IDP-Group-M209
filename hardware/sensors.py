@@ -44,44 +44,62 @@ class TCS34725: # the colour sensor
         self.i2c = i2c
         self.integration_time = integration_time
         self.gain = gain
+        
+        # TCS34725 I2C address
+        self.TCS34725_ADDR = 0x29
+        self.COMMAND_BIT = 0x80
+
+        # Register addresses
+        self.REG_ENABLE = 0x00
+        self.REG_ATIME = 0x01
+        self.REG_CONTROL = 0x0F
+        self.REG_ID = 0x12
+        self.REG_CDATAL = 0x14  # Clear channel data low byte
+        self.REG_RDATAL = 0x16
+        self.REG_GDATAL = 0x18
+        self.REG_BDATAL = 0x1A
+        
+        # Enable register bits
+        self.ENABLE_AEN = 0x02  # RGBC enable
+        self.ENABLE_PON = 0x01  # Power ON
 
         # Check sensor ID
-        sensor_id = self._read8(REG_ID)
+        sensor_id = self._read8(self.REG_ID)
         if sensor_id not in (0x44, 0x10):
             raise RuntimeError("TCS34725 not found or wrong ID: 0x{:02X}".format(sensor_id))
 
         # Set integration time and gain
-        self._write8(REG_ATIME, self.integration_time)
-        self._write8(REG_CONTROL, self.gain)
+        self._write8(self.REG_ATIME, self.integration_time)
+        self._write8(self.REG_CONTROL, self.gain)
 
         # Enable the device
         self.enable()
 
     def enable(self):
-        self._write8(REG_ENABLE, ENABLE_PON)
+        self._write8(self.REG_ENABLE, self.ENABLE_PON)
         time.sleep_ms(3)
-        self._write8(REG_ENABLE, ENABLE_PON | ENABLE_AEN)
+        self._write8(self.REG_ENABLE, self.ENABLE_PON | self.ENABLE_AEN)
 
     def disable(self):
-        reg = self._read8(REG_ENABLE)
-        self._write8(REG_ENABLE, reg & ~(ENABLE_PON | ENABLE_AEN))
+        reg = self._read8(self.REG_ENABLE)
+        self._write8(self.REG_ENABLE, reg & ~(self.ENABLE_PON | self.ENABLE_AEN))
 
     def _read8(self, reg):
-        return self.i2c.readfrom_mem(TCS34725_ADDR, COMMAND_BIT | reg, 1)[0]
+        return self.i2c.readfrom_mem(self.TCS34725_ADDR, self.COMMAND_BIT | reg, 1)[0]
 
     def _read16(self, reg):
-        data = self.i2c.readfrom_mem(TCS34725_ADDR, COMMAND_BIT | reg, 2)
+        data = self.i2c.readfrom_mem(self.TCS34725_ADDR, self.COMMAND_BIT | reg, 2)
         return data[1] << 8 | data[0]
 
     def _write8(self, reg, value):
-        self.i2c.writeto_mem(TCS34725_ADDR, COMMAND_BIT | reg, bytes([value]))
+        self.i2c.writeto_mem(self.TCS34725_ADDR, self.COMMAND_BIT | reg, bytes([value]))
 
     def read_raw(self):
         """Returns raw (clear, red, green, blue) values."""
-        clear = self._read16(REG_CDATAL)
-        red = self._read16(REG_RDATAL)
-        green = self._read16(REG_GDATAL)
-        blue = self._read16(REG_BDATAL)
+        clear = self._read16(self.REG_CDATAL)
+        red = self._read16(self.REG_RDATAL)
+        green = self._read16(self.REG_GDATAL)
+        blue = self._read16(self.REG_BDATAL)
         return clear, red, green, blue
 
     def calculate_color_temperature(self, r, g, b):
@@ -101,4 +119,36 @@ class TCS34725: # the colour sensor
     def calculate_lux(self, r, g, b):
         """Approximate lux value."""
         return int((-0.32466 * r) + (1.57837 * g) + (-0.73191 * b))
-    
+
+class TMF8701:
+    def __init__(self, device: DFRobot_TMF8701):
+        self.dev = device
+        self.running = False
+        
+        while self.dev.begin() != 0:
+            print("initialising")
+            time.sleep(0.3)
+        print("initialised")
+
+    def start(self):
+        """Start continuous measurement."""
+        self.dev.start_measurement(calib_m=self.dev.eMODE_NO_CALIB, mode=self.dev.ePROXIMITY)
+        self.running = True
+
+    def stop(self):
+        """Stop measurement."""
+        self.dev.stop_measurement()
+        self.running = False
+
+    def read(self):
+        """Returns distance in mm or None if not ready."""
+        if not self.running:
+            print("device not running")
+            return None
+
+        if self.dev.is_data_ready():
+            return self.dev.get_distance_mm()
+        return None
+
+
+        return int((-0.32466 * r) + (1.57837 * g) + (-0.73191 * b))    
