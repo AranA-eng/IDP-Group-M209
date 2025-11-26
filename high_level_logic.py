@@ -5,6 +5,7 @@ from control import PID, JunctionHandler
 from navigation import robot_routing as rt
 from machine import Pin, ADC, PWM, SoftI2C, I2C
 from libs.tcs3472_micropython.tcs3472 import tcs3472
+from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8801, DFRobot_TMF8701
 import time
 from utime import sleep
 
@@ -23,6 +24,20 @@ left_motor = mo.Motor(LEFT_DIR, LEFT_PWM)
 right_motor = mo.Motor(RIGHT_DIR, RIGHT_PWM)
 actuator = act.Actuator(dirPin, PWMPin)
 
+# i2c buses																											
+i2c_colour = I2C(id = 0, sda = Pin(8), scl = Pin(9), freq = 400000)
+i2c_VL53L0X = I2C(id = 0, sda = Pin(8), scl = Pin(9))                         #on the left?
+i2c_TMF8701 = I2C(id = 1, sda = Pin(2), scl = Pin(3))                         #on the right?
+
+# onoff pin for colour sensor                                                 #check pin value
+onoff = Pin(14, Pin.out)									
+onoff.value(1)
+
+# sensors initialisation
+tof = DFRobot_TMF8701(i2c_TMF8701)									
+TMF8701 = TMF8701(tof) 										                    #now can write TMF8701.start(), .read(), .stop()
+VL53L0X = VL53L0X(i2c_VL53L0X)								                    #now can write VL53L0X.read()
+TCS3472 = TCS34725(i2c_colour, onoffpin = onoff)								#now can write TCS3472.read()
 
 # line sensor pins
 IR_PINS = [10, 12, 13, 11]
@@ -51,6 +66,7 @@ purple_branches = [14, 15, 16, 17, 18, 19, 32, 33, 34, 35, 36, 37]
 
 # map of the nodes
 nodedirections = {
+    -1: (10, 10, 1, -1, 0), #note that for the minor nodes, minordirs means the direction to turn at their major links to go f or b
     0: (10, 10, 1, -1, -1),
     1: (10, 10, 1, -1, 39),
     2: (-1, 1, 1, 10, 40),
@@ -90,10 +106,10 @@ nodedirections = {
     36: (10, 10, -1, 1, None),
     37: (10, 10, -1, 1, None),
     38: (10, 2, 10, 10, None),
-    39: (10, 10, 10, 10, 1), #minor from 1
-    40: (10, 10, 10, 10, 2), #minor from 2
-    41: (10, 10, 10, 10, 20), #minor from 20
-    42: (10, 10, 10, 10, 20), #minor from 21
+    39: (10, 10, 1, -1, 1), #minor from 1
+    40: (10, 10, 10, -1, 2), #minor from 2
+    41: (10, 10, 1, 10, 20), #minor from 20
+    42: (10, 10, 1, -1, 21), #minor from 21
 }
 
 
