@@ -51,9 +51,71 @@ class TOFSensorArray:
     
     def read_right(self):
         return self.sensors[1].read()
-    
-
 
 #in main.py: import TOFSensorArray, then tof_array = TOFSensorArray([],[])
 #left_distance = tof_array.read_left()
 #right_distance = tof_array.read_right()
+
+class TCS34725:
+    def __init__(self, i2c, integration_time=0xEB, gain=0x01):
+        self.i2c = i2c
+        self.integration_time = integration_time
+        self.gain = gain
+
+        # Check sensor ID
+        sensor_id = self._read8(REG_ID)
+        if sensor_id not in (0x44, 0x10):
+            raise RuntimeError("TCS34725 not found or wrong ID: 0x{:02X}".format(sensor_id))
+
+        # Set integration time and gain
+        self._write8(REG_ATIME, self.integration_time)
+        self._write8(REG_CONTROL, self.gain)
+
+        # Enable the device
+        self.enable()
+
+    def enable(self):
+        self._write8(REG_ENABLE, ENABLE_PON)
+        time.sleep_ms(3)
+        self._write8(REG_ENABLE, ENABLE_PON | ENABLE_AEN)
+
+    def disable(self):
+        reg = self._read8(REG_ENABLE)
+        self._write8(REG_ENABLE, reg & ~(ENABLE_PON | ENABLE_AEN))
+
+    def _read8(self, reg):
+        return self.i2c.readfrom_mem(TCS34725_ADDR, COMMAND_BIT | reg, 1)[0]
+
+    def _read16(self, reg):
+        data = self.i2c.readfrom_mem(TCS34725_ADDR, COMMAND_BIT | reg, 2)
+        return data[1] << 8 | data[0]
+
+    def _write8(self, reg, value):
+        self.i2c.writeto_mem(TCS34725_ADDR, COMMAND_BIT | reg, bytes([value]))
+
+    def read_raw(self):
+        """Returns raw (clear, red, green, blue) values."""
+        clear = self._read16(REG_CDATAL)
+        red = self._read16(REG_RDATAL)
+        green = self._read16(REG_GDATAL)
+        blue = self._read16(REG_BDATAL)
+        return clear, red, green, blue
+
+    def calculate_color_temperature(self, r, g, b):
+        """Approximate color temperature in Kelvin."""
+        if r == 0 or g == 0 or b == 0:
+            return 0
+        X = (-0.14282 * r) + (1.54924 * g) + (-0.95641 * b)
+        Y = (-0.32466 * r) + (1.57837 * g) + (-0.73191 * b)
+        Z = (-0.68202 * r) + (0.77073 * g) + (0.56332 * b)
+        if X + Y + Z == 0:
+            return 0
+        xc = X / (X + Y + Z)
+        yc = Y / (X + Y + Z)
+        n = (xc - 0.3320) / (0.1858 - yc)
+        return int((449 * (n ** 3)) + (3525 * (n ** 2)) + (6823.3 * n) + 5520.33)
+
+    def calculate_lux(self, r, g, b):
+        """Approximate lux value."""
+        return int((-0.32466 * r) + (1.57837 * g) + (-0.73191 * b))
+    
