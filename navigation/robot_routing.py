@@ -270,6 +270,7 @@ class Router:
 
             # go from start to bridge
             way_to_bridge = self.choose_dir(start_node, bridge.id)
+            way = way_to_bridge
             
             if checkstart:
                 self.turn_bin.append(2)
