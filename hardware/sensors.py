@@ -1,6 +1,9 @@
 from machine import Pin, ADC, PWM, SoftI2C, I2C
 from libs.VL53L0X.VL53L0X import VL53L0X
 import time
+from utime import sleep
+from libs.tcs3472_micropython.tcs3472 import tcs3472
+from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8801, DFRobot_TMF8701
 
 
 class IRSensorArray: 
@@ -23,82 +26,80 @@ class IRSensorArray:
         return 0 if weight_sum == 0 else total/weight_sum
 
 
-class TOFSensor:
-    def __init__(self, i2c_id, sda_pin, scl_pin):
-        self.i2c = I2C(id = i2c_id, sda = Pin(sda_pin), scl = Pin(scl_pin))
+class VL53L0X: # the VL53L0X dist sensor, expected config (0, 8, 9)
+    def __init__(self, i2c):
+        self.i2c = i2c
         self.sensor = VL53L0X(i2c)
     
     def read(self):
         time.sleep_ms(30)
         return self.sensor.read()
-        
     
-class TOFSensorArray:
-    def __init__(self, config):
-        
-        #config = [
-        #    (0, 8, 9),
-        #    #() enter second sensor pins
-        #]
-        
-        self.sensors = [
-            TOFSensor(i2c_id, sda, scl) for (i2c_id, sda, scl) in config
-        ]
-        
-        
-    def read_left(self):
-        return self.sensors[0].read() #assuming 0,8,9 corresponds to the left sensor
-    
-    def read_right(self):
-        return self.sensors[1].read()
-
 #in main.py: import TOFSensorArray, then tof_array = TOFSensorArray([],[])
 #left_distance = tof_array.read_left()
 #right_distance = tof_array.read_right()
 
-class TCS34725:
+class TCS34725: # the colour sensor
     def __init__(self, i2c, integration_time=0xEB, gain=0x01):
         self.i2c = i2c
         self.integration_time = integration_time
         self.gain = gain
+        
+        # TCS34725 I2C address
+        self.TCS34725_ADDR = 0x29
+        self.COMMAND_BIT = 0x80
+
+        # Register addresses
+        self.REG_ENABLE = 0x00
+        self.REG_ATIME = 0x01
+        self.REG_CONTROL = 0x0F
+        self.REG_ID = 0x12
+        self.REG_CDATAL = 0x14  # Clear channel data low byte
+        self.REG_RDATAL = 0x16
+        self.REG_GDATAL = 0x18
+        self.REG_BDATAL = 0x1A
+        
+        # Enable register bits
+        self.ENABLE_AEN = 0x02  # RGBC enable
+        self.ENABLE_PON = 0x01  # Power ON
 
         # Check sensor ID
-        sensor_id = self._read8(REG_ID)
+        sensor_id = self._read8(self.REG_ID)
         if sensor_id not in (0x44, 0x10):
             raise RuntimeError("TCS34725 not found or wrong ID: 0x{:02X}".format(sensor_id))
 
         # Set integration time and gain
-        self._write8(REG_ATIME, self.integration_time)
-        self._write8(REG_CONTROL, self.gain)
+        self._write8(self.REG_ATIME, self.integration_time)
+        self._write8(self.REG_CONTROL, self.gain)
 
         # Enable the device
         self.enable()
 
     def enable(self):
-        self._write8(REG_ENABLE, ENABLE_PON)
+        self._write8(self.REG_ENABLE, self.ENABLE_PON)
         time.sleep_ms(3)
-        self._write8(REG_ENABLE, ENABLE_PON | ENABLE_AEN)
+        self._write8(self.REG_ENABLE, self.ENABLE_PON | self.ENABLE_AEN)
 
     def disable(self):
-        reg = self._read8(REG_ENABLE)
-        self._write8(REG_ENABLE, reg & ~(ENABLE_PON | ENABLE_AEN))
+        reg = self._read8(self.REG_ENABLE)
+        self._write8(self.REG_ENABLE, reg & ~(self.ENABLE_PON | self.ENABLE_AEN))
 
     def _read8(self, reg):
-        return self.i2c.readfrom_mem(TCS34725_ADDR, COMMAND_BIT | reg, 1)[0]
+        return self.i2c.readfrom_mem(self.TCS34725_ADDR, self.COMMAND_BIT | reg, 1)[0]
 
     def _read16(self, reg):
-        data = self.i2c.readfrom_mem(TCS34725_ADDR, COMMAND_BIT | reg, 2)
+        data = self.i2c.readfrom_mem(self.TCS34725_ADDR, self.COMMAND_BIT | reg, 2)
         return data[1] << 8 | data[0]
 
     def _write8(self, reg, value):
-        self.i2c.writeto_mem(TCS34725_ADDR, COMMAND_BIT | reg, bytes([value]))
+        self.i2c.writeto_mem(self.TCS34725_ADDR, self.COMMAND_BIT | reg, bytes([value]))
 
     def read_raw(self):
         """Returns raw (clear, red, green, blue) values."""
-        clear = self._read16(REG_CDATAL)
-        red = self._read16(REG_RDATAL)
-        green = self._read16(REG_GDATAL)
-        blue = self._read16(REG_BDATAL)
+        clear = self._read16(self.REG_CDATAL)
+        red = self._read16(self.REG_RDATAL)
+        green = self._read16(self.REG_GDATAL)
+        blue = self._read16(self.REG_BDATAL)
         return clear, red, green, blue
 
     def calculate_color_temperature(self, r, g, b):
@@ -118,4 +119,36 @@ class TCS34725:
     def calculate_lux(self, r, g, b):
         """Approximate lux value."""
         return int((-0.32466 * r) + (1.57837 * g) + (-0.73191 * b))
-    
+
+class TMF8701:
+    def __init__(self, device: DFRobot_TMF8701):
+        self.dev = device
+        self.running = False
+        
+        while self.dev.begin() != 0:
+            print("initialising")
+            time.sleep(0.3)
+        print("initialised")
+
+    def start(self):
+        """Start continuous measurement."""
+        self.dev.start_measurement(calib_m=self.dev.eMODE_NO_CALIB, mode=self.dev.ePROXIMITY)
+        self.running = True
+
+    def stop(self):
+        """Stop measurement."""
+        self.dev.stop_measurement()
+        self.running = False
+
+    def read(self):
+        """Returns distance in mm or None if not ready."""
+        if not self.running:
+            print("device not running")
+            return None
+
+        if self.dev.is_data_ready():
+            return self.dev.get_distance_mm()
+        return None
+
+
+        return int((-0.32466 * r) + (1.57837 * g) + (-0.73191 * b))    
