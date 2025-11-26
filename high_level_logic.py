@@ -25,9 +25,9 @@ right_motor = mo.Motor(RIGHT_DIR, RIGHT_PWM)
 actuator = act.Actuator(dirPin, PWMPin)
 
 # i2c buses																											
-i2c_colour = I2C(id = 0, sda = Pin(8), scl = Pin(9), freq = 400000)           #check these
-i2c_VL53L0X = I2C(id = 0, sda = Pin(8), scl = Pin(9))                         #on the left?
-i2c_TMF8701 = I2C(id = 1, sda = Pin(2), scl = Pin(3))                         #on the right?
+i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)           #check these
+i2c_VL53L0X = I2C(id = 0, sda = Pin(2), scl = Pin(3))                         #on the left?
+i2c_TMF8701 = I2C(id = 1, sda = Pin(8), scl = Pin(9))                         #on the right?
 
 # onoff pin for colour sensor                                                 #check pin value
 onoff = Pin(14, Pin.out)									
