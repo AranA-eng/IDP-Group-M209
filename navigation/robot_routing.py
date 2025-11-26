@@ -1,7 +1,4 @@
 # robot_routing.py
-from dataclasses import dataclass
-from typing import Dict, Optional, List, Tuple
-
 # --- original node directions mapping (unchanged) ---
 nodedirections = {
     -1: (10, 10, 1, -1, 0), #note that for the minor nodes, minordirs means the direction to turn at their major links to go f or b
@@ -54,23 +51,23 @@ nodedirections = {
 # ----------------------
 # Data classes & Node
 # ----------------------
-@dataclass
+
 class RouteResult:
-    turn_sequence: List[int]
-    final_facing: str
-    path_nodes: List[int]
+    def __init__(self, turn_sequence, final_facing, path_nodes):
+        self.turn_sequence = turn_sequence
+        self.final_facing = final_facing
+        self.path_nodes = path_nodes
 
 
 class Node:
-    def __init__(self, node_id: int, dirs: Tuple[int, int, int, int, Optional[int]]):
+    def __init__(self, node_id, dirs):
         self.id = node_id
         # unpack directions: nextdir, prevdir, minorfdir, minorbdir, minor_id
         self.nextdir, self.prevdir, self.minorfdir, self.minorbdir, self.minor_id = dirs
         # linked-list links (set by graph)
-        self.next: Optional["Node"] = None
-        self.prev: Optional["Node"] = None
-        # reference to minor node (set by graph)
-        self.minor: Optional["Node"] = None
+        self.next = None
+        self.prev = None
+        self.minor = None
 
     def __repr__(self):
         return f"Node({self.id})"
@@ -87,9 +84,9 @@ class RouteGraph:
     Also links minor nodes according to nodedirections.
     """
 
-    def __init__(self, config: Dict[int, Tuple[int, int, int, int, Optional[int]]]):
+    def __init__(self, config):
         self.config = config
-        self.nodes: Dict[int, Node] = {}
+        self.nodes = {}
         self._build_nodes()
         self._link_primary()
         self._link_minors()
@@ -136,9 +133,9 @@ class Router:
     def __init__(self, graph: RouteGraph):
         self.graph = graph
         # per-route state
-        self.turn_bin: List[int] = []
-        self.facing: str = "f"  # "f" or "b"
-        self.path_nodes: List[int] = []
+        self.turn_bin = []
+        self.facing = "f"  # "f" or "b"
+        self.path_nodes = []
 
     # ---------- direction helpers ----------
     @staticmethod
@@ -173,7 +170,7 @@ class Router:
         return node in [-1, 39, 40, 41, 42]
 
     # ---------- main traversal ----------
-    def route(self, start: int, end: int) -> RouteResult:
+    def route(self, start, end):
         """
         Public API: returns RouteResult(turn_sequence, final_facing, path_nodes)
         """
@@ -185,20 +182,20 @@ class Router:
         self._traverse(start_node=start, end_node=end, first_call=True)
 
         return RouteResult(
-            turn_sequence=self.turn_bin.copy(),
-            final_facing=self.facing,
-            path_nodes=self.path_nodes.copy(),
+            self.turn_bin[:],
+            self.facing,
+            self.path_nodes[:],
         )
 
     def _traverse(
         self,
-        start_node: int,
-        end_node: int,
-        way: Optional[str] = "f",
-        skip_first: bool = False,
-        first_call: bool = True,
-        crossing_bridge: bool = False,
-    ) -> Node:
+        start_node,
+        end_node,
+        way = "f",
+        skip_first = False,
+        first_call = True,
+        crossing_bridge = False,
+    ):
         """
         Internal traversal that mirrors the logic of your original function.
         Returns the final Node object reached (so callers can inspect it).
@@ -386,17 +383,17 @@ class Router:
 # Example usage (same behaviour as your original quick test)
 # ----------------------
 
-#if __name__ == "__main__":
-#    graph = RouteGraph(nodedirections)
-#    router = Router(graph)
+# if __name__ == "__main__":
+#     graph = RouteGraph(nodedirections)
+#     router = Router(graph)
 
-    # replicate original tests
-#    r1 = router.route(37, -1)
-    #r1 = router.route(41, -1)
-#    print("route 39->41 turns:", r1.turn_sequence)
-#    print("The node sequence is: ", r1.path_nodes)
-#    print("final facing:", r1.final_facing)
+#     #replicate original tests
+#     r1 = router.route(37, -1)
+#     r1 = router.route(41, -1)
+#     print("route 39->41 turns:", r1.turn_sequence)
+#     print("The node sequence is: ", r1.path_nodes)
+#     print("final facing:", r1.final_facing)
 
-#    r2 = router.route(30, 10)
-#    print("route 10->31 turns:", r2.turn_sequence)
-#    print("final facing:", r2.final_facing)
+#     r2 = router.route(30, 10)
+#     print("route 10->31 turns:", r2.turn_sequence)
+#     print("final facing:", r2.final_facing)
