@@ -40,10 +40,11 @@ class VL53L0X: # the VL53L0X dist sensor, expected config (0, 8, 9)
 #right_distance = tof_array.read_right()
 
 class TCS34725: # the colour sensor
-    def __init__(self, i2c, integration_time=0xEB, gain=0x01):
+    def __init__(self, i2c, onoffpin: Pin, integration_time=0xEB, gain=0x01):
         self.i2c = i2c
         self.integration_time = integration_time
         self.gain = gain
+        self.onoff = onoffpin
         
         # TCS34725 I2C address
         self.TCS34725_ADDR = 0x29
@@ -119,6 +120,13 @@ class TCS34725: # the colour sensor
     def calculate_lux(self, r, g, b):
         """Approximate lux value."""
         return int((-0.32466 * r) + (1.57837 * g) + (-0.73191 * b))
+    
+    def read(self):
+        self.onoff.value(0)
+        sleep(0.5)
+        clear, red, green, blue = self.read_raw()
+        self.onoff.value(1)
+        return clear
 
 class TMF8701:
     def __init__(self, device: DFRobot_TMF8701):
