@@ -1,4 +1,4 @@
-from hardware import Motor
+from hardware import Motor, IRSensorArray
 from utime import sleep
 
 
@@ -6,8 +6,9 @@ from utime import sleep
 
 class JunctionHandler: # handling left and right motor
     """class for handling corners"""
-    def __init__(self, motors, min_pwm, max_pwm):
+    def __init__(self, motors, min_pwm, max_pwm, sensors):
         self.motors = motors  # motors must be instance of DifferentialDrive
+        self.sensors = sensors  # sensors must be instance of IRSensorArray
         self.min_pwm = min_pwm
         self.max_pwm = max_pwm
     
@@ -40,15 +41,16 @@ class JunctionHandler: # handling left and right motor
         sleep(0.3)
         #---verify signs when we test---
         if dir == 1: #left turn
-            self.motors.set(-55000, 55000)
-            sleep(0.6)
+            while self.sensors.read_sensors() != [0, 1, 1, 0]:
+                self.motors.set(-55000, 55000)
+            
         elif dir == -1: #right turn
-            self.motors.set(55000, -55000)
-            sleep(0.6)
+            while self.sensors.read_sensors() != [0, 1, 1, 0]:
+                self.motors.set(55000, -55000)
 
         elif dir == 2:
-            self.motors.set(-55000, 55000)
-            sleep(1.3)
+            while self.sensors.read_sensors() != [0, 1, 1, 0]:
+                self.motors.set(-55000, 55000)
 
     
 
