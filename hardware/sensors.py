@@ -122,11 +122,11 @@ class TCS34725: # the colour sensor
         return int((-0.32466 * r) + (1.57837 * g) + (-0.73191 * b))
     
     def read(self):
-        self.onoff.value(0)
+        self.onoff.value(1)
         sleep(0.5)
         clear, red, green, blue = self.read_raw()
         self.disable()
-        self.onoff.value(1)
+        self.onoff.value(0)
         return clear
 
 class TMF8701:
