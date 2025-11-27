@@ -9,11 +9,21 @@ from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8801, DFRobot_TMF870
 import time
 from utime import sleep
 
+# led and button pins
+led_pin = 27
+led = Pin(led_pin, Pin.OUT)
+
+button_pin = 28
+button = Pin(button_pin, Pin.IN, Pin.PULL_DOWN)
+
+led_on = 0
+prev = 0
+
 # motor pins
-LEFT_PWM = 6
-LEFT_DIR = 7
-RIGHT_PWM = 5
-RIGHT_DIR = 4
+LEFT_PWM = 5
+LEFT_DIR = 4
+RIGHT_PWM = 6
+RIGHT_DIR = 7
 max_pwm = 65535
 
 # actuator pins
@@ -24,23 +34,23 @@ left_motor = mo.Motor(LEFT_DIR, LEFT_PWM)
 right_motor = mo.Motor(RIGHT_DIR, RIGHT_PWM)
 actuator = act.Actuator(dirPin, PWMPin)
 
-# i2c buses																											
+# i2c buses
 i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)                           #CHECK: check these
 i2c_VL53L0X = I2C(id = 0, sda = Pin(2), scl = Pin(3))                                           #CHECK: on the left?
 i2c_TMF8701 = I2C(id = 1, sda = Pin(8), scl = Pin(9))                                           #CHECK: on the right?
 
 # onoff pin for colour sensor                                                                   #CHECK: check pin value
-onoff = Pin(14, Pin.out)									
+onoff = Pin(14, Pin.out)
 onoff.value(1)
 
 # sensors initialisation
-tof = DFRobot_TMF8701(i2c_TMF8701)									
-TMF8701 = TMF8701(tof) 										                                    #DONE: now can write TMF8701.start(), .read(), .stop()
-VL53L0X = VL53L0X(i2c_VL53L0X)								                                    #DONE: now can write VL53L0X.read()
-TCS3472 = TCS34725(i2c_colour, onoffpin = onoff)								                #DONE: now can write TCS3472.read()
+tof = DFRobot_TMF8701(i2c_TMF8701)
+TMF8701 = TMF8701(tof)                                                                          #DONE: now can write TMF8701.start(), .read(), .stop()
+VL53L0X = VL53L0X(i2c_VL53L0X)                                                                  #DONE: now can write VL53L0X.read()
+TCS3472 = TCS34725(i2c_colour, onoffpin = onoff)                                                #DONE: now can write TCS3472.read()
 
 # line sensor pins
-IR_PINS = [10, 12, 13, 11]
+IR_PINS = [12, 13, 11, 10]
 line_sensor_weights = [-5.0, -2.0, 2.0, 5.0]
 IR_sensors = sen.IRSensorArray(IR_PINS, line_sensor_weights)
 
@@ -153,37 +163,44 @@ def turn_follower(junction_list, vals, count):
         next_count = count + 1 # next index in the junction_list
         return junction, next_count
 
-def lift_mech(current_node, vals):
+def load(current_node):
+    drive.stop()
+    
     if current_node < 21:
         actuator.setheight(27)
     else:
         actuator.setheight(4)
 
-    # setting motor speed to be very low and stop when the values read [0,0,0,0]
-    drive.set(10000,10000)
-    if vals == [0,0,0,0]:
-        time.sleep(0.2) # experiment w values here
-        drive.stop()
-        #set current node to current.minor
-
-    drive.set(-10000, -10000)                                                                  #TODO: reverse a bit out the shelf, also need to enforce first turn of turn_sequence and set counter = 1
-    time.sleep(0.4)
+    if IR_sensors.read() == [0, 1, 1, 1]:
+        #turn right																						
+    else:
+        #turn left																						
+    
+    while IR_sensors.read() != [0, 0, 0, 0]:     #setting motor speed to be very low and stop when the values read [0,0,0,0]
+        vals = IR_sensors.read()
+        err = IR_sensors.compute_error(vals)
+        corr = pid.update(err)
+        jh.apply_motor_speeds(10000, corr, 0)
+    sleep(0.2)
     drive.stop()
-    minor_node = router.graph.get_node(current_node).minor
     actuator.setheight(34)
-    actuator.stop()
+    drive.set(-20000, -20000)                                                                  #DONE: reverse a bit out the shelf
+    time.sleep(3)                                                                              #TODO: need to enforce first turn of turn_sequence and set counter = 1
+    drive.stop()
+    minor_node = router.graph.get_node(current_node).minor.id    #set current node to current.minor
+    .													#need to do a junc = 2 turn, then set count to 1 I THINK
     return minor_node
 
 def unload():
     drive.set(10000, 10000)                                                                    #DONE: go a bit into the bay area
-    time.sleep(0.4)
+    time.sleep(2)
     drive.stop()
     actuator.setheight(0)
-    drive.set(-10000, -10000)                                                                  #DONE: reverse a bit out the bay, simply needs to stop at the bay node
-    time.sleep(0.4)                                                                            #DONE: ideally the robot will stop at the bay node since the sleep times are the same 
+    drive.set(-20000, -20000)                                                                  #DONE: reverse a bit out the bay, simply needs to stop at the bay node
+    time.sleep(1.3)                                                                            #DONE: ideally the robot will stop at the bay node since the sleep times are the same 
     drive.stop()                                                                               #QUESTION: if the robot does this accurately for 2 boxes of the same colour, will it try to stack one directly on top of the other (fork will snap)?
     actuator.setheight(20) #keep fork off ground in case we go to ramp
-    actuator.stop()
+    .													#need to do a junc = 2 turn, then set count to 1 I THINK
     return
 
 def color_sensor_reading():
@@ -199,9 +216,29 @@ def color_sensor_reading():
         color = "Blue"
     return color
 
+def distance_sensor_reading():
+    if IR_sensors.read() == [0, 1, 1, 1]:      #need to use right sensor
+        distance = 															#which sensor on which side?
+    elif IR_sensors.read() == [1, 1, 1, 0]:    #need to use left sensor
+        distance = 															#which sensor on which side?
+    else:
+        distance = 0  #doesn't affect logic for box_detection since this case won't be while a junction is detected and in the correct node space
+    return distance
+
+def box_detection(vals, current_node, distance, threshold):
+    # the line sensor must read the junction values
+    on_junction = vals in junction_sensor_values
+
+    # the node at which the sensor just read must be in the bay areas
+    in_bay_area = current_node in orange_branches or current_node in purple_branches
+    
+    # the distance sensor must be less than the threshold
+    box_close = distance < threshold
+    return on_junction and in_bay_area and box_close
 
 
-threshold = 100                                                                                #CHECK: measure this
+
+threshold = 200                                                                                #CHECK: measure this
 
 color_node = {
 "Green": 1,
@@ -229,16 +266,20 @@ junction_list = router.route(0, 22)
 turns = junction_list.turn_sequence
 nodes = junction_list.path_nodes
 
-def box_detection(vals, current_node, distance, threshold):
-    # the line sensor must read the junction values
-    on_junction = vals in junction_sensor_values
 
-    # the node at which the sensor just read must be in the bay areas
-    in_bay_area = current_node in orange_branches or current_node in purple_branches
-    
-    # the distance sensor must be less than the threshold
-    box_close = distance < threshold
-    return on_junction and in_bay_area and box_close
+
+try:
+    while True:
+        button_val = button.value()
+        if button_val == 1 and prev == 0:
+            break
+finally:
+    pass
+
+led.value(1)
+
+actuator.reset()
+actuator.setheight(20)
 
 try: 
     while True: 
@@ -253,7 +294,8 @@ try:
         
         # once new node is detected, returns the behaviour that needs to happen, as well as incrementing count
         result = turn_follower(turns, vals, count)
-        if result: 
+        
+        if result is not None: 
             junction, count = result
         else: 
             junction = 0 # go straight
@@ -266,11 +308,11 @@ try:
             distance = distance_sensor.read()                                                         #TODO: which distance sensor you use depends on which shelves you are at and which way round the arena you are travelling
             if box_detection(vals, current_node, distance, threshold):                                #eg: if current_node in purple branches, if current_node < 21, then read from left sensor, maybe need to know next node? ie from next index
                 
-                state = "COLLECTING"
-                lift_mech()
+                state = "COLLECTING"  
+                current_node = load(current_node)                                                     #DONE:need to traverse to minor: load returns the current node's minor
                 color = color_sensor_reading()
-
-                box_node = current_node #current_node.minor
+                router.facing = "b"                                                                   #DONE: set facing to backwards (one of two cases where facing needs to be changed): this is required for the next turn sequence to start correctly 
+                box_node = current_node
 
                 if box_node in orange_branches: orange_counter += 1
                 if box_node in purple_branches: purple_counter += 1
@@ -283,6 +325,10 @@ try:
                 count = 0 # reset counter
 
                 state = "NAV_TO_DEPOSIT"
+                
+            if current_node == -1 and nodes[-1] == -1:                                                  #DONE: if reached node -1 and that is the end point (ie run is done) then stop
+                sleep(1.5)
+                drive.stop()
         
         elif state == "NAV_TO_DEPOSIT":
             jh.apply_motor_speeds(base_speed, corr, junction)
@@ -290,7 +336,7 @@ try:
                 state = "DEPOSIT"
         
         elif state == "DEPOSIT":
-            unload()                                                                                     #CHECK: written
+            unload()                                                                                     
 
             if orange_counter < 4 and purple_counter < 4: 
                 # both areas have boxes left
@@ -307,7 +353,7 @@ try:
                 next_area = "PURPLE"
 
             else: 
-                state = "START" # Done all 8                                                            #TODO: need START state branch
+                state = "START" # Done all 8                                                            #DONE: START state branch
 
 
             if next_area == "ORANGE":
@@ -321,18 +367,29 @@ try:
             junction_list = router.route(current_node, target_node)
             turns = junction_list.turn_sequence
             nodes = junction_list.path_nodes
-            count = 0                                                                                    #DONE: current reassigned based on the node sequence and the index of the node the box was found at: line 252
+            count = 0                                                                                    #DONE: current reassigned based on the node sequence and the index of the node the box was found at: line 282
             
             state = "FOLLOW_LINE"
+                
+        elif state == "START":
+            junction_list = router.route(current_node, -1)
+            turns = junction_list.turn_sequence
+            nodes = junction_list.path_nodes
+            state = "FOLLOW_LINE"
         
-
         elapsed = time.ticks_diff(time.ticks_ms(), t_start)
         if elapsed < dt_ms:
             time.sleep_ms(dt_ms - elapsed)
 
 finally:
-    mo.DiffDrive.stop()
-
-
-
-
+    drive.stop()
+    
+    
+#can use interrupts: index error: continue
+    #is that even needed? maybe because we keep trying to work towards 22 and 38 then we never reach an index error?
+    
+    
+#TODOS:
+#How are we implementing turn now? given that it now uses the IR sensor readings, are we now going to import the IR sensors into the control lib?
+#Enforcing these turns after the load/unload sequences (this is entirely dependent on the previous point)
+#Which distance sensor on which side?
