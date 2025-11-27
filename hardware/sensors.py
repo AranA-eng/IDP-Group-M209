@@ -12,7 +12,7 @@ class IRSensorArray:
         self.weights = weights
 
     def read(self):
-        time.sleep_ms(7.5)
+        time.sleep(0.03)
         return [s.value() for s in self.sensors]
     
     def compute_error(self, vals):
