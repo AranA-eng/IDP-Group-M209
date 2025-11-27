@@ -27,16 +27,17 @@ class JunctionHandler: # handling left and right motor
         self.motors.set(left, right)
 
         if junction == 0:
-            sleep(0.03)
+            pass
+            #sleep(0.03)
         
         elif junction == 10:
-            sleep(0.4)
+            sleep(0.25)
 
         elif junction == 1 or junction == -1:
             self.turn(junction)
 
     def turn(self, dir):
-        sleep(0.45)
+        sleep(0.3)
         #---verify signs when we test---
         if dir == 1: #left turn
             self.motors.set(-55000, 55000)
