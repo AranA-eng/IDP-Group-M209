@@ -163,7 +163,7 @@ def turn_follower(junction_list, vals, count):
         next_count = count + 1 # next index in the junction_list
         return junction, next_count
 
-def load(current_node):
+def load(current_node, count):
     drive.stop()
     
     if current_node < 21:
@@ -172,9 +172,9 @@ def load(current_node):
         actuator.setheight(4)
 
     if IR_sensors.read() == [0, 1, 1, 1]:
-        #turn right																						
+        jh.turn(-1)  #turn right
     else:
-        #turn left																						
+        jh.turn(1)   #turn left
     
     while IR_sensors.read() != [0, 0, 0, 0]:     #setting motor speed to be very low and stop when the values read [0,0,0,0]
         vals = IR_sensors.read()
@@ -188,10 +188,11 @@ def load(current_node):
     time.sleep(3)                                                                              #TODO: need to enforce first turn of turn_sequence and set counter = 1
     drive.stop()
     minor_node = router.graph.get_node(current_node).minor.id    #set current node to current.minor
-    .													#need to do a junc = 2 turn, then set count to 1 I THINK
-    return minor_node
+    jh.turn(2)                                                                                 #DONE: need to do a junc = 2 turn, then set count to 1 I THINK
+    count = 1
+    return minor_node, count
 
-def unload():
+def unload(count):
     drive.set(10000, 10000)                                                                    #DONE: go a bit into the bay area
     time.sleep(2)
     drive.stop()
@@ -200,8 +201,9 @@ def unload():
     time.sleep(1.3)                                                                            #DONE: ideally the robot will stop at the bay node since the sleep times are the same 
     drive.stop()                                                                               #QUESTION: if the robot does this accurately for 2 boxes of the same colour, will it try to stack one directly on top of the other (fork will snap)?
     actuator.setheight(20) #keep fork off ground in case we go to ramp
-    .													#need to do a junc = 2 turn, then set count to 1 I THINK
-    return
+    jh.turn(2)                                                                                 #DONE: need to do a junc = 2 turn, then set count to 1 I THINK
+    count = 1
+    return count
 
 def color_sensor_reading():
     color_reading = TCS3472.read()
@@ -309,7 +311,7 @@ try:
             if box_detection(vals, current_node, distance, threshold):                                #eg: if current_node in purple branches, if current_node < 21, then read from left sensor, maybe need to know next node? ie from next index
                 
                 state = "COLLECTING"  
-                current_node = load(current_node)                                                     #DONE:need to traverse to minor: load returns the current node's minor
+                current_node, count = load(current_node, count)                                       #DONE:need to traverse to minor: load returns the current node's minor
                 color = color_sensor_reading()
                 router.facing = "b"                                                                   #DONE: set facing to backwards (one of two cases where facing needs to be changed): this is required for the next turn sequence to start correctly 
                 box_node = current_node
@@ -336,7 +338,7 @@ try:
                 state = "DEPOSIT"
         
         elif state == "DEPOSIT":
-            unload()                                                                                     
+            count = unload(count)                                                                                     
 
             if orange_counter < 4 and purple_counter < 4: 
                 # both areas have boxes left
