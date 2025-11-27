@@ -223,7 +223,7 @@ def turn_follower(junction_list, vals, count):
 #     MAIN TEST LOOP
 # ======================================
 
-junction_list = router.route(-1, 3)      # start → first bay
+junction_list = router.route(-1, 43)      # start → first bay
 turns = junction_list.turn_sequence
 nodes = junction_list.path_nodes
 count = 0
