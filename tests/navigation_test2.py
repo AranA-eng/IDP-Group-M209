@@ -8,17 +8,6 @@
     - colour sensors and distance TOF
     - Full game master logic
 """
-"""
-Test for navigation. Sends the robot to every single bay.
- - Collects a box (any colour)
- - Deposits the box at node 40
-
-NOT TESTED:
- - colour sensor (TCS3472)
- - distance TOF
- - full game-state logic
-"""
-
 from hardware import motor as mo
 from hardware import sensors as sen
 from hardware import Actuator as act
@@ -53,9 +42,9 @@ IR_PINS = [12, 13, 11, 10]
 line_sensor_weights = [-5.0, -1.0, 1.0, 5.0]
 IR_sensors = sen.IRSensorArray(IR_PINS, line_sensor_weights)
 
-Kp = -2300.0
-Ki = 20.0
-Kd = 7.5
+Kp = 2300.0
+Ki = -20.0
+Kd = -7.5
 dt_ms = 10
 base_speed = 45000
 
