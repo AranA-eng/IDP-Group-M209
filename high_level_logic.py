@@ -181,7 +181,7 @@ def unload():
     actuator.setheight(0)
     drive.set(-10000, -10000)                                                                  #DONE: reverse a bit out the bay, simply needs to stop at the bay node
     time.sleep(0.4)                                                                            #DONE: ideally the robot will stop at the bay node since the sleep times are the same 
-    drive.stop()
+    drive.stop()                                                                               #QUESTION: if the robot does this accurately for 2 boxes of the same colour, will it try to stack one directly on top of the other (fork will snap)?
     actuator.setheight(20) #keep fork off ground in case we go to ramp
     actuator.stop()
     return
@@ -264,7 +264,7 @@ try:
             jh.apply_motor_speeds(base_speed, corr, junction)
 
             distance = distance_sensor.read()                                                         #TODO: which distance sensor you use depends on which shelves you are at and which way round the arena you are travelling
-            if box_detection(vals, current_node, distance, threshold):
+            if box_detection(vals, current_node, distance, threshold):                                #eg: if current_node in purple branches, if current_node < 21, then read from left sensor, maybe need to know next node? ie from next index
                 
                 state = "COLLECTING"
                 lift_mech()
