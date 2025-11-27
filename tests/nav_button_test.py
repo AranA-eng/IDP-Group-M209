@@ -12,10 +12,10 @@ from utime import sleep
 IR_PINS = [13, 12, 11, 10] #adjust accordingly
 
 # Motor pins - adjust accordingly -------------------------------------------------------------------------------------------------------
-motor_left_pwm_pin = 6
-motor_left_dir_pin = 7
-motor_right_pwm_pin = 5
-motor_right_dir_pin = 4
+motor_left_pwm_pin = 5
+motor_left_dir_pin = 4
+motor_right_pwm_pin = 6
+motor_right_dir_pin = 7
 
 
 #---Parameters---
@@ -25,9 +25,9 @@ max_pwm = 65535
 min_pwm = 15000
 
 # how were these values chosen?
-Kp = -2300.0
-Ki = 20.0
-Kd = 7.5
+Kp = 2300.0
+Ki = -20.0
+Kd = -7.5
 
 dt_ms = 10 # control loop period in ms
 
@@ -194,21 +194,42 @@ def compute_error(vals):
 
 # beware of signs here for left and right
 def apply_motor_speeds(base, correction, junction):
-    junction_boost = 55000  # arbitrary increase in PWM for turning
-    
-    left = base + correction + junction * junction_boost
-    right = base - correction - junction * junction_boost
+    left = base + correction
+    right = base - correction
 
     left = max(min_pwm, min(max_pwm, int(left)))
     right = max(min_pwm, min(max_pwm, int(right)))
-    
+
+    left_motor.set(left)
+    right_motor.set(right)
+
     if junction == 0:
-        left_motor.set(left)
-        right_motor.set(right)
-    else:
-        left_motor.set(left)
-        right_motor.set(right)        
-        sleep(1.1)
+        sleep(0.03)
+    
+    elif junction == 10:
+        sleep(0.4)
+
+    elif junction == 1 or junction == -1:
+        turn(junction)
+    
+def turn(dir):
+    #---verify signs when we test---
+    if dir == 1: #left turn
+        sleep(0.4)
+        left_motor.set(-55000)
+        right_motor.set(55000)
+        sleep(0.38)
+    elif dir == -1: #right turn
+        sleep(0.4)
+        left_motor.set(55000)
+        right_motor.set(-55000)
+        sleep(0.38)
+
+    elif dir == 2:
+        sleep(0.4)
+        left_motor.set(-55000)
+        right_motor.set(55000)
+        sleep(0.76)
     
 def stop_all():
     left_motor.set(0)
@@ -261,9 +282,10 @@ try:
         result = turn_follower(turns, vals, count)
         if result is not None:																						# 
             junction, count = result
+            print(junction)
         else: 
             junction = 0 # go straight
-        
+        print(f"applying {junction} to motors")
         apply_motor_speeds(base_speed, corr, junction)
         elapsed = time.ticks_diff(time.ticks_ms(), t_start)
         if elapsed < dt_ms:
