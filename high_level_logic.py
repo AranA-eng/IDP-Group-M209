@@ -25,19 +25,19 @@ right_motor = mo.Motor(RIGHT_DIR, RIGHT_PWM)
 actuator = act.Actuator(dirPin, PWMPin)
 
 # i2c buses																											
-i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)           #check these
-i2c_VL53L0X = I2C(id = 0, sda = Pin(2), scl = Pin(3))                         #on the left?
-i2c_TMF8701 = I2C(id = 1, sda = Pin(8), scl = Pin(9))                         #on the right?
+i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)                           #CHECK: check these
+i2c_VL53L0X = I2C(id = 0, sda = Pin(2), scl = Pin(3))                                           #CHECK: on the left?
+i2c_TMF8701 = I2C(id = 1, sda = Pin(8), scl = Pin(9))                                           #CHECK: on the right?
 
-# onoff pin for colour sensor                                                 #check pin value
+# onoff pin for colour sensor                                                                   #CHECK: check pin value
 onoff = Pin(14, Pin.out)									
 onoff.value(1)
 
 # sensors initialisation
 tof = DFRobot_TMF8701(i2c_TMF8701)									
-TMF8701 = TMF8701(tof) 										                    #now can write TMF8701.start(), .read(), .stop()
-VL53L0X = VL53L0X(i2c_VL53L0X)								                    #now can write VL53L0X.read()
-TCS3472 = TCS34725(i2c_colour, onoffpin = onoff)								#now can write TCS3472.read()
+TMF8701 = TMF8701(tof) 										                                    #DONE: now can write TMF8701.start(), .read(), .stop()
+VL53L0X = VL53L0X(i2c_VL53L0X)								                                    #DONE: now can write VL53L0X.read()
+TCS3472 = TCS34725(i2c_colour, onoffpin = onoff)								                #DONE: now can write TCS3472.read()
 
 # line sensor pins
 IR_PINS = [10, 12, 13, 11]
@@ -153,21 +153,6 @@ def turn_follower(junction_list, vals, count):
         next_count = count + 1 # next index in the junction_list
         return junction, next_count
 
-def lift_mech(router, ):                                                          #need to put DiffDrive or motors in this
-        current = router.current
-        #needs to turn be junction == current.minorfdir or current.minorbdir depending on facing at that node
-        if current.data < 21: #on lower level
-            actuator.setheight(27)
-        else: #on upper level
-            actuator.setheight(4)  
-        
-        #set motor speeds to very low and stop when vals read [0,0,0,0]
-        
-        actuator.setheight(34)
-        actuator.stop()
-        
-        #reverse, 180 turn, forward until [1,1,1,1], turn at junction by (-1)(current.minorfdir if facing == "f" else current.minorbdir)
-
 def lift_mech(current_node, vals):
     if current_node < 21:
         actuator.setheight(27)
@@ -181,31 +166,48 @@ def lift_mech(current_node, vals):
         drive.stop()
         #set current node to current.minor
 
-        minor_node = router.graph.get_node(current_node).minor # ------------------
-
+    drive.set(-10000, -10000)                                                                  #TODO: reverse a bit out the shelf, also need to enforce first turn of turn_sequence and set counter = 1
+    time.sleep(0.4)
+    drive.stop()
+    minor_node = router.graph.get_node(current_node).minor
     actuator.setheight(34)
     actuator.stop()
     return minor_node
 
-    
-
 def unload():
+    drive.set(10000, 10000)                                                                    #DONE: go a bit into the bay area
+    time.sleep(0.4)
+    drive.stop()
     actuator.setheight(0)
-    #reverse a little bit
+    drive.set(-10000, -10000)                                                                  #DONE: reverse a bit out the bay, simply needs to stop at the bay node
+    time.sleep(0.4)                                                                            #DONE: ideally the robot will stop at the bay node since the sleep times are the same 
+    drive.stop()
     actuator.setheight(20) #keep fork off ground in case we go to ramp
     actuator.stop()
     return
 
 def color_sensor_reading():
-    return None
+    color_reading = TCS3472.read()
+    
+    if color_reading > 2000:                                                                    #CHECK: need boundaries
+        color = "Green"
+    elif color_reading > 1500:
+        color = "Red"
+    elif color_reading > 1000:
+        color = "Yellow"
+    else:
+        color = "Blue"
+    return color
 
-threshold = 100
+
+
+threshold = 100                                                                                #CHECK: measure this
 
 color_node = {
-"green": 1,
-"blue": 2,
-"red": 20,
-"yellow": 21
+"Green": 1,
+"Blue": 2,
+"Red": 20,
+"Yellow": 21
 }
 
 color_node_val = [1,2,20,21]
@@ -261,7 +263,7 @@ try:
             actuator.setheight(20)
             jh.apply_motor_speeds(base_speed, corr, junction)
 
-            distance = distance_sensor.read() #-------------------------------------------------------------------------
+            distance = distance_sensor.read()                                                         #TODO: which distance sensor you use depends on which shelves you are at and which way round the arena you are travelling
             if box_detection(vals, current_node, distance, threshold):
                 
                 state = "COLLECTING"
@@ -284,11 +286,11 @@ try:
         
         elif state == "NAV_TO_DEPOSIT":
             jh.apply_motor_speeds(base_speed, corr, junction)
-            if current_node in color_node_val:                                              #
+            if current_node in color_node_val:                                   
                 state = "DEPOSIT"
         
         elif state == "DEPOSIT":
-            deposit_mechanism()                                                     #being written
+            unload()                                                                                     #CHECK: written
 
             if orange_counter < 4 and purple_counter < 4: 
                 # both areas have boxes left
@@ -305,7 +307,7 @@ try:
                 next_area = "PURPLE"
 
             else: 
-                state = "START" # Done all 8
+                state = "START" # Done all 8                                                            #TODO: need START state branch
 
 
             if next_area == "ORANGE":
@@ -316,10 +318,10 @@ try:
             else: 
                 target_node = START_NODE
 
-            junction_list = router.route(current_node, target_node)                #is this meant to be router.route(current_node(), target_node)?
+            junction_list = router.route(current_node, target_node)
             turns = junction_list.turn_sequence
             nodes = junction_list.path_nodes
-            count = 0                                                                     #also, current needs to be reassigned based on when the interrupt was. we know the node sequence and the index of the node the box was found at
+            count = 0                                                                                    #DONE: current reassigned based on the node sequence and the index of the node the box was found at: line 252
             
             state = "FOLLOW_LINE"
         
