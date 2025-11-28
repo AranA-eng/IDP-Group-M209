@@ -246,7 +246,7 @@ def turn(dir):
         left_motor.set(-55000)
         right_motor.set(55000)
         sleep(0.2)
-        while read_sensors() != [1, 1, 0, 0]:
+        while read_sensors() != [0, 1, 1, 0]:
             left_motor.set(-55000)
             right_motor.set(55000)
 
@@ -290,7 +290,7 @@ finally:
 led_on = 1
 led.value(led_on)
 
-actuator.reset()
+actuator.reset()										
 actuator.setheight(20)
 
 
@@ -356,35 +356,47 @@ try:
             sleep(0.8)
             left_motor.set(0)
             right_motor.set(0)
-            actuator.setheight(35)
+            actuator.setheight(30)
             
-            sleep(1)															
+            t_start = time.ticks_ms()																#timer to reverse
+            while time.ticks_diff(time.ticks_ms(), t_start) < 1800:
+                vals = read_sensors()
+                err = compute_error(vals)
+                corr = -pid.update(err)
+                apply_motor_speeds(-20000, corr, 0)
+            
+            turn(2)
+            
+            
+            sleep(1)
+            left_motor.set(0)
+            right_motor.set(0)
             onoff.value(1)
             TCS3472.enable()
             sleep(1)
             clear, red, green, blue = TCS3472.read_raw()
-            print("Clear:", clear)
+            print("Clear:", clear, "RGB:", red, green, blue)
             TCS3472.disable()
             onoff.value(0)														
             colour_node = None
             
-                    
-            if red / clear > 0.44: #red box
-                colour_node = 41
-            elif green / clear > 0.44: #green box
-                colour_node = 39
-            elif blue / clear > 0.44: #blue box
-                colour_node = 40
-            else: #yellow box
+            if (abs(red - green) < (0.1 * clear)) and ((red - blue) > (0.05 * clear)): #yellow box: has lower blue and similar RG values
                 colour_node = 42
+                print("yellow")
+            elif (red > green) and (red > blue) and ((red-green) / clear > 0.05): #red box
+                colour_node = 41
+                print("red")
+            elif (blue > red) and (blue > green) and ((red-green) / clear > 0.05): #blue box
+                colour_node = 40
+                print("blue")
+            else: #green box
+                colour_node = 39
+                print("green")
+                
+            #print(colour_node)
+            #sleep(10)
             
-            left_motor.set(-20000)
-            right_motor.set(-20000)
-            sleep(2)
-            left_motor.set(0)
-            right_motor.set(0)
-            
-            turn(2)																
+                																
             count = 1															
             graph = rt.RouteGraph(nodedirections) 
             router = rt.Router(graph)
@@ -394,7 +406,7 @@ try:
             current_node = nodes[1]
             print(turns)
             print(nodes)
-            
+        
         if elapsed < dt_ms:
             time.sleep_ms(dt_ms - elapsed)
             
