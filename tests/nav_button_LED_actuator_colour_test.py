@@ -52,10 +52,12 @@ led_on = 0
 prev = 0
 
 #Colour sensor setup
-onoff = Pin(14, Pin.out)
-onoff.value(0)
-i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)        
+onoff = Pin(17, Pin.OUT)
+onoff.value(1)
+i2c_colour = I2C(id = 1, scl = Pin(15), sda = Pin(14), freq = 400000)        
 TCS3472 = sen.TCS34725(i2c_colour, onoffpin = onoff)                                                #DONE: now can write TCS3472.read()
+onoff.value(0)
+
 
 # map of the nodes
 nodedirections = {
@@ -225,7 +227,7 @@ def apply_motor_speeds(base, correction, junction):
 def turn(dir):
     #---verify signs when we test---
     if dir == 1: #left turn
-        sleep(0.3)
+        sleep(0.4)
         while read_sensors() != [0, 1, 1, 0]:
             print(read_sensors())
             left_motor.set(-55000)
@@ -233,13 +235,16 @@ def turn(dir):
 
         
     elif dir == -1: #right turn
-        sleep(0.3)
+        sleep(0.4)
         while read_sensors() != [0, 1, 1, 0]:
             left_motor.set(55000)
             right_motor.set(-55000)
 
 
     elif dir == 2:
+        sleep(0.2)
+        left_motor.set(-55000)
+        right_motor.set(55000)
         sleep(0.2)
         while read_sensors() != [0, 1, 1, 0]:
             left_motor.set(-55000)
@@ -287,12 +292,37 @@ led.value(led_on)
 actuator.reset()
 actuator.setheight(20)
 
-try:
-    while True:
-        color_reading = TCS3472.read()
-        print(color_reading)
-except KeyboardInterrupt:
-    pass
+
+#try:
+#    while True:
+#        """    
+#        sleep(1)
+#        if (onoff_value == 1):
+#            clear, red, green, blue = TCS3472.read_raw()
+#            print("Clear:", clear)
+#            TCS3472.disable()
+#            onoff.value(0)
+#            onoff_value = 0
+#        else:
+#            print("OFF")
+#            onoff.value(1)
+#            onoff_value = 1
+#            TCS3472.enable()
+#        """            
+        
+#        sleep(1)
+#        onoff.value(1)
+#        TCS3472.enable()
+#        sleep(1)
+#        clear, red, green, blue = TCS3472.read_raw()
+#        print("Clear:", clear)
+#        TCS3472.disable()
+#        onoff.value(0)
+        
+
+#
+#except KeyboardInterrupt:
+#    pass
 
 try:
     while True:      
@@ -321,16 +351,44 @@ try:
             actuator.setheight(27)
             while read_sensors() != [0, 0, 0, 0]:
                 apply_motor_speeds(10000, corr, 0)
-            sleep(0.2)
+            sleep(0.35)
             left_motor.set(0)
             right_motor.set(0)
             actuator.setheight(35)
+            
+            sleep(1)															
+            onoff.value(1)
+            TCS3472.enable()
+            sleep(1)
+            clear, red, green, blue = TCS3472.read_raw()
+            print("Clear:", clear)
+            TCS3472.disable()
+            onoff.value(0)														
+            colour_node = None
+            
+                    
+            if red / clear > 0.44: #red box
+                colour_node = 41
+            elif green / clear > 0.44: #green box
+                colour_node = 39
+            elif blue / clear > 0.44: #blue box
+                colour_node = 40
+            else: #yellow box
+                colour_node = 42
+            
             left_motor.set(-20000)
             right_motor.set(-20000)
-            sleep(6)
+            sleep(2)
             left_motor.set(0)
             right_motor.set(0)
             
+            turn(2)																
+            count = 1													
+            graph = rt.RouteGraph(nodedirections) 
+            router = rt.Router(graph)
+            junction_list = router.route(43, colour_node)
+            turns = junction_list.turn_sequence
+            nodes = junction_list.path_nodes
             
         if elapsed < dt_ms:
             time.sleep_ms(dt_ms - elapsed)
@@ -339,3 +397,8 @@ try:
 
 finally:
     stop_all()
+
+
+
+
+
