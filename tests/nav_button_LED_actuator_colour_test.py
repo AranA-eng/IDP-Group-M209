@@ -346,6 +346,7 @@ try:
         #print(f"applying {junction} to motors")
         apply_motor_speeds(base_speed, corr, junction)
         elapsed = time.ticks_diff(time.ticks_ms(), t_start)
+        
         if current_node == 43:
             left_motor.set(0)
             right_motor.set(0)  
@@ -384,12 +385,13 @@ try:
             right_motor.set(0)
             
             turn(2)																
-            count = 1													
+            count = 1															
             graph = rt.RouteGraph(nodedirections) 
             router = rt.Router(graph)
             junction_list = router.route(43, colour_node)
             turns = junction_list.turn_sequence
             nodes = junction_list.path_nodes
+            current_node = nodes[1]
             print(turns)
             print(nodes)
             
@@ -400,10 +402,3 @@ try:
 
 finally:
     stop_all()
-
-
-
-
-
-
-
