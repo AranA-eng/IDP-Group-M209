@@ -52,9 +52,9 @@ led_on = 0
 prev = 0
 
 #Colour sensor setup
-onoff = Pin(14, Pin.OUT)
+onoff = Pin(14, Pin.out)
 onoff.value(0)
-i2c_colour = I2C(id = 1, scl = Pin(9), sda = Pin(8), freq = 400000)        
+i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)        
 TCS3472 = sen.TCS34725(i2c_colour, onoffpin = onoff)                                                #DONE: now can write TCS3472.read()
 
 # map of the nodes
@@ -339,5 +339,3 @@ try:
 
 finally:
     stop_all()
-
-
