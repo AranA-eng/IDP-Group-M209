@@ -246,7 +246,7 @@ def turn(dir):
         left_motor.set(-55000)
         right_motor.set(55000)
         sleep(0.2)
-        while read_sensors() != [0, 1, 1, 0]:
+        while read_sensors() != [1, 1, 0, 0]:
             left_motor.set(-55000)
             right_motor.set(55000)
 
@@ -272,6 +272,7 @@ router = rt.Router(graph)
 junction_list = router.route(-1, 43)
 turns = junction_list.turn_sequence
 nodes = junction_list.path_nodes
+
 count = 0
 print(turns)
 print(nodes)
@@ -350,8 +351,8 @@ try:
             right_motor.set(0)  
             actuator.setheight(27)
             while read_sensors() != [0, 0, 0, 0]:
-                apply_motor_speeds(10000, corr, 0)
-            sleep(0.35)
+                apply_motor_speeds(15000, corr, 0)
+            sleep(0.8)
             left_motor.set(0)
             right_motor.set(0)
             actuator.setheight(35)
@@ -389,6 +390,8 @@ try:
             junction_list = router.route(43, colour_node)
             turns = junction_list.turn_sequence
             nodes = junction_list.path_nodes
+            print(turns)
+            print(nodes)
             
         if elapsed < dt_ms:
             time.sleep_ms(dt_ms - elapsed)
@@ -397,6 +400,8 @@ try:
 
 finally:
     stop_all()
+
+
 
 
 
