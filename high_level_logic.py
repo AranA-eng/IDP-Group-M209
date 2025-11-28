@@ -45,9 +45,9 @@ onoff.value(1)
 
 # sensors initialisation
 tof = DFRobot_TMF8701(i2c_TMF8701)
-TMF8701 = TMF8701(tof)                                                                          #DONE: now can write TMF8701.start(), .read(), .stop()
-VL53L0X = VL53L0X(i2c_VL53L0X)                                                                  #DONE: now can write VL53L0X.read()
-TCS3472 = TCS34725(i2c_colour, onoffpin = onoff)                                                #DONE: now can write TCS3472.read()
+TMF8701 = sen.TMF8701(tof)                                                                          #DONE: now can write TMF8701.start(), .read(), .stop()
+VL53L0X = sen.VL53L0X(i2c_VL53L0X)                                                                  #DONE: now can write VL53L0X.read()
+TCS3472 = sen.TCS34725(i2c_colour, onoffpin = onoff)                                                #DONE: now can write TCS3472.read()
 
 # line sensor pins
 IR_PINS = [12, 13, 11, 10]
