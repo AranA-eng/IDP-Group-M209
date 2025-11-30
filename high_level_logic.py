@@ -46,8 +46,11 @@ onoff.value(1)
 # sensors initialisation
 tof = DFRobot_TMF8701(i2c_TMF8701)
 TMF8701 = sen.TMF8701(tof)                                                                          #now can write TMF8701.start(), .read(), .stop()
-VL53L0X = sen.VL53L0X(i2c_VL53L0X)                                                                  #now can write VL53L0X.read()
+VL53L0X = sen.VL53L0X(i2c_VL53L0X)                                                                  #now can write VL53L0X.read(), .read(), .stop()
 TCS3472 = sen.TCS34725(i2c_colour, onoffpin = onoff)                                                #now can write TCS3472.read()
+
+VL53L0X.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[0], 18)
+VL53L0X.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[1], 14)
 
 # line sensor pins
 IR_PINS = [12, 13, 11, 10]
@@ -235,7 +238,8 @@ def color_sensor_reading():
         #print("Green")
     return color
 
-def distance_sensor_reading():                                                                                                    """what's happening with the distance sensors???"""
+"""
+def distance_sensor_reading():                                                                                                       #what's happening with the distance sensors???
     if IR_sensors.read() == [0, 1, 1, 1]:      #need to use right sensor                                                             might need to change flow
         distance = 															#which sensor on which side?
     elif IR_sensors.read() == [1, 1, 1, 0]:    #need to use left sensor
@@ -243,8 +247,13 @@ def distance_sensor_reading():                                                  
     else:
         distance = 0  #doesn't affect logic for box_detection since this case won't be while a junction is detected and in the correct node space
     return distance
+"""
 
-def box_detection(vals, current_node, distance, threshold):
+def box_detection(vals, current_node, threshold):
+    distance = VL53L0X.read()
+
+"""===================================================================================================================================================================================================================================================================================="""
+""" NEEDS DISCUSSION ABOUT HOW THIS IS CHANGING"""    
     # the line sensor must read the junction values
     on_junction = vals in junction_sensor_values
 
@@ -324,13 +333,12 @@ try:
             actuator.setheight(20)
             jh.apply_motor_speeds(base_speed, corr, junction)
 
-            distance = distance_sensor.read()                                                         #TODO: which distance sensor you use depends on which shelves you are at and which way round the arena you are travelling
-            if box_detection(vals, current_node, distance, threshold):                                #eg: if current_node in purple branches, if current_node < 21, then read from left sensor, maybe need to know next node? ie from next index
+            if box_detection(vals, current_node, threshold):
                 
                 state = "COLLECTING"  
-                current_node, count = load(current_node, count)                                       #DONE:need to traverse to minor: load returns the current node's minor
+                current_node, count = load(current_node, count)                                       #need to traverse to minor: load returns the current node's minor
                 color = color_sensor_reading()
-                router.facing = "b"                                                                   #DONE: set facing to backwards (one of two cases where facing needs to be changed): this is required for the next turn sequence to start correctly 
+                router.facing = "b"                                                                   #set facing to backwards (facing needs to be changed): this is required for the next turn sequence to start correctly 
                 box_node = current_node
 
                 if box_node in orange_branches: orange_counter += 1
@@ -344,7 +352,7 @@ try:
 
                 state = "NAV_TO_DEPOSIT"
                 
-            if current_node == -1 and nodes[-1] == -1:                                                  #DONE: if reached node -1 and that is the end point (ie run is done) then stop
+            if current_node == -1 and nodes[-1] == -1:                                                  #if reached node -1 and that is the end point (ie run is done) then stop
                 sleep(1.5)
                 drive.stop()
         
@@ -371,7 +379,7 @@ try:
                 next_area = "PURPLE"
 
             else: 
-                state = "START" # Done all 8                                                            #DONE: START state branch
+                state = "START" # Done all 8                                                            #START state branch
 
 
             if next_area == "ORANGE":
@@ -385,7 +393,7 @@ try:
             junction_list = router.route(current_node, target_node)
             turns = junction_list.turn_sequence
             nodes = junction_list.path_nodes
-            count = 0                                                                                    #DONE: current reassigned based on the node sequence and the index of the node the box was found at: line 282
+            count = 0                                                                                    #current reassigned based on the node sequence and the index of the node the box was found at: line 282
             
             state = "FOLLOW_LINE"
                 
