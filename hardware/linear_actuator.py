@@ -13,7 +13,7 @@ class Actuator:
         self.height = 0
            
     def set(self, dir, duration):
-        speed = 50 # standard speed 50
+        speed = 100 # standard speed 100
         self.mDir.value(dir)                     # forward = 1, reverse = 0 motor
         self.pwm.duty_u16(int(65535 * speed / 100))  # speed range 0-100 motor
         sleep(duration)
@@ -21,8 +21,8 @@ class Actuator:
         sleep(1)
         
     def reset(self):
-        self.set(0, 10)
-        self.set(1, 0.8) #set back to 0cm datum
+        self.set(0, 5)
+        self.set(1, 0.4) #set back to 0cm datum
         self.height = 0
         
     def setheight(self, newheight): # eg if height was from 0 to 10
@@ -32,7 +32,7 @@ class Actuator:
             newheight = 0
             
         distance = newheight - self.height
-        timeon = abs(distance/3) #translate from distance (mm) to time actuator is on (1 time unit = 3mm)
+        timeon = abs(distance/6) #translate from distance (mm) to time actuator is on (1 time unit = 6mm under new speed 100 standard)
         
         if distance == 0:
             return
@@ -49,6 +49,7 @@ class Actuator:
 
 
 #test -----------------------------------------
+"""
 def test_actuator1():
     actuator1 = Actuator(dirPin=0, PWMPin=1)  # Actuator 1 controlled from Motor Driv1 #1, which is on GP0/1
     actuator1.reset()
@@ -71,5 +72,6 @@ def test_actuator1():
 if __name__ == "__main__":
     print("testing")
     test_actuator1()
+"""
     
 
