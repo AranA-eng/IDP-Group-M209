@@ -35,19 +35,19 @@ right_motor = mo.Motor(RIGHT_DIR, RIGHT_PWM)
 actuator = act.Actuator(dirPin, PWMPin)
 
 # i2c buses
-i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)                           #CHECK: check these
-i2c_VL53L0X = I2C(id = 0, sda = Pin(2), scl = Pin(3))                                           #CHECK: on the left?
-i2c_TMF8701 = I2C(id = 1, sda = Pin(8), scl = Pin(9))                                           #CHECK: on the right?
+i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)
+i2c_VL53L0X = I2C(id = 1, sda = Pin(8), scl = Pin(9))                                               #Currently assuming this is on the right side
+i2c_TMF8701 = I2C(id = 0, sda = Pin(2), scl = Pin(3))                                               #Currently not being used
 
-# onoff pin for colour sensor                                                                   #CHECK: check pin value
+# onoff pin for colour sensor                                                                      
 onoff = Pin(14, Pin.out)
 onoff.value(1)
 
 # sensors initialisation
 tof = DFRobot_TMF8701(i2c_TMF8701)
-TMF8701 = sen.TMF8701(tof)                                                                          #DONE: now can write TMF8701.start(), .read(), .stop()
-VL53L0X = sen.VL53L0X(i2c_VL53L0X)                                                                  #DONE: now can write VL53L0X.read()
-TCS3472 = sen.TCS34725(i2c_colour, onoffpin = onoff)                                                #DONE: now can write TCS3472.read()
+TMF8701 = sen.TMF8701(tof)                                                                          #now can write TMF8701.start(), .read(), .stop()
+VL53L0X = sen.VL53L0X(i2c_VL53L0X)                                                                  #now can write VL53L0X.read()
+TCS3472 = sen.TCS34725(i2c_colour, onoffpin = onoff)                                                #now can write TCS3472.read()
 
 # line sensor pins
 IR_PINS = [12, 13, 11, 10]
@@ -195,26 +195,26 @@ def load(current_node, count):
         apply_motor_speeds(-20000, corr, 0)
     """
 
-    drive.set(-20000, -20000)                                                                  #DONE: reverse a bit out the shelf
-    time.sleep(3)                                                                              #TODO: need to enforce first turn of turn_sequence and set counter = 1
+    drive.set(-20000, -20000)                                                                  #reverse a bit out the shelf
+    time.sleep(3)               
 
     
     drive.stop()
     minor_node = router.graph.get_node(current_node).minor.id    #set current node to current.minor
-    jh.turn(2)                                                                                 #DONE: need to do a junc = 2 turn, then set count to 1 I THINK
+    jh.turn(2)                                                                                 #need to do a junc = 2 turn, then set count to 1
     count = 1    
     return minor_node, count
 
 def unload(count):
-    drive.set(10000, 10000)                                                                    #DONE: go a bit into the bay area
+    drive.set(10000, 10000)                                                                    #go a bit into the bay area
     time.sleep(2)
     drive.stop()
     actuator.setheight(0)
-    drive.set(-20000, -20000)                                                                  #DONE: reverse a bit out the bay, simply needs to stop at the bay node
-    time.sleep(1.3)                                                                            #DONE: ideally the robot will stop at the bay node since the sleep times are the same 
-    drive.stop()                                                                               #QUESTION: if the robot does this accurately for 2 boxes of the same colour, will it try to stack one directly on top of the other (fork will snap)?
-    actuator.setheight(20) #keep fork off ground in case we go to ramp
-    jh.turn(2)                                                                                 #DONE: need to do a junc = 2 turn, then set count to 1 I THINK
+    drive.set(-20000, -20000)                                                                  #reverse a bit out the bay, simply needs to stop at the bay node
+    time.sleep(2)                                                                              #ideally the robot will stop at the bay node since the sleep times are the same 
+    drive.stop() 
+    actuator.setheight(20)                                                                     #keep fork off ground in case we go to ramp
+    jh.turn(2)                                                                                 #need to do a junc = 2 turn, then set count to 1
     count = 1
     return count
 
@@ -236,7 +236,7 @@ def color_sensor_reading():
     return color
 
 def distance_sensor_reading():                                                                                                    """what's happening with the distance sensors???"""
-    if IR_sensors.read() == [0, 1, 1, 1]:      #need to use right sensor
+    if IR_sensors.read() == [0, 1, 1, 1]:      #need to use right sensor                                                             might need to change flow
         distance = 															#which sensor on which side?
     elif IR_sensors.read() == [1, 1, 1, 0]:    #need to use left sensor
         distance = 															#which sensor on which side?
