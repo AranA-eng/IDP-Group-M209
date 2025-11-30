@@ -37,7 +37,7 @@ actuator = act.Actuator(dirPin, PWMPin)
 # i2c buses
 i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)
 i2c_VL53L0X = I2C(id = 1, sda = Pin(8), scl = Pin(9))                                               #Currently assuming this is on the right side
-i2c_TMF8701 = I2C(id = 0, sda = Pin(2), scl = Pin(3))                                               #Currently not being used
+i2c_TMF8701 = I2C(id = 0, sda = Pin(2), scl = Pin(3))                                               #Currently not being used, but assumend on the left side
 
 # onoff pin for colour sensor                                                                      
 onoff = Pin(14, Pin.out)
@@ -189,7 +189,7 @@ def load(current_node, count):
     drive.stop()
     actuator.setheight(30)
 
-    """                                                                                        #TODO: check this, would replace the two lines after   
+    """                                                                                        #TODO: check this, would replace the two lines after   =====================================================
     timer = time.ticks_ms()																#timer to reverse
     while time.ticks_diff(time.ticks_ms(), timer) < 1800:
         vals = read_sensors()
@@ -238,22 +238,18 @@ def color_sensor_reading():
         #print("Green")
     return color
 
-"""
+
 def distance_sensor_reading():                                                                                                       #what's happening with the distance sensors???
     if IR_sensors.read() == [0, 1, 1, 1]:      #need to use right sensor                                                             might need to change flow
-        distance = 															#which sensor on which side?
+        distance = VL53L0X.read()
     elif IR_sensors.read() == [1, 1, 1, 0]:    #need to use left sensor
-        distance = 															#which sensor on which side?
+        distance = TMF8701.read()
     else:
         distance = 0  #doesn't affect logic for box_detection since this case won't be while a junction is detected and in the correct node space
     return distance
-"""
 
-def box_detection(vals, current_node, threshold):
-    distance = VL53L0X.read()
 
-"""===================================================================================================================================================================================================================================================================================="""
-""" NEEDS DISCUSSION ABOUT HOW THIS IS CHANGING"""    
+def box_detection(vals, current_node, distance, threshold):    
     # the line sensor must read the junction values
     on_junction = vals in junction_sensor_values
 
@@ -333,7 +329,9 @@ try:
             actuator.setheight(20)
             jh.apply_motor_speeds(base_speed, corr, junction)
 
-            if box_detection(vals, current_node, threshold):
+            distance = distance_sensor_reading()
+            
+            if box_detection(vals, current_node, distance, threshold):
                 
                 state = "COLLECTING"  
                 current_node, count = load(current_node, count)                                       #need to traverse to minor: load returns the current node's minor
