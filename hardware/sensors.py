@@ -123,11 +123,23 @@ class TCS34725: # the colour sensor
     
     def read(self):
         self.onoff.value(1)
-        sleep(0.5)
+        self.enable()
+        sleep(1)
         clear, red, green, blue = self.read_raw()
         self.disable()
         self.onoff.value(0)
-        return clear
+        return clear, red, green, blue
+
+onoff.value(1)
+            TCS3472.enable()
+            sleep(1)
+            clear, red, green, blue = TCS3472.read_raw()
+            print("Clear:", clear, "RGB:", red, green, blue)
+            TCS3472.disable()
+            onoff.value(0)
+
+
+
 
 class TMF8701:
     def __init__(self, device: DFRobot_TMF8701):
