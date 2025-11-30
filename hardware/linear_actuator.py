@@ -1,5 +1,5 @@
-#set the standard speed to 50 then calculate heights off that
-#reset lowers the actuator to a minimum then raises slightly so the fork is just off the ground (true 0 datum)
+#set the standard speed to 100 then calculate heights off that
+#reset lowers the actuator to a minimum which is just off the ground (0 datum)
 
 from machine import Pin, PWM
 from utime import sleep
@@ -13,7 +13,7 @@ class Actuator:
         self.height = 0
            
     def set(self, dir, duration):
-        speed = 100 # standard speed 100
+        speed = 100 # standard speed 50
         self.mDir.value(dir)                     # forward = 1, reverse = 0 motor
         self.pwm.duty_u16(int(65535 * speed / 100))  # speed range 0-100 motor
         sleep(duration)
@@ -21,8 +21,7 @@ class Actuator:
         sleep(1)
         
     def reset(self):
-        self.set(0, 5)
-        self.set(1, 0.4) #set back to 0cm datum
+        self.set(0, 6) #set back to 0cm datum
         self.height = 0
         
     def setheight(self, newheight): # eg if height was from 0 to 10
@@ -32,7 +31,7 @@ class Actuator:
             newheight = 0
             
         distance = newheight - self.height
-        timeon = abs(distance/6) #translate from distance (mm) to time actuator is on (1 time unit = 6mm under new speed 100 standard)
+        timeon = abs(distance/9) #translate from distance (mm) to time actuator is on (1 time unit = 9mm)
         
         if distance == 0:
             return
@@ -49,29 +48,28 @@ class Actuator:
 
 
 #test -----------------------------------------
-"""
-def test_actuator1():
-    actuator1 = Actuator(dirPin=0, PWMPin=1)  # Actuator 1 controlled from Motor Driv1 #1, which is on GP0/1
-    actuator1.reset()
+#def test_actuator1():
+    #actuator1 = Actuator(dirPin=0, PWMPin=1)  # Actuator 1 controlled from Motor Driv1 #1, which is on GP0/1
+    #actuator1.reset()
 
 
-    actuator1.setheight(27)
-    sleep(5)
-    actuator1.setheight(37)
+    #actuator1.setheight(27)
+    #sleep(5)
+    #actuator1.setheight(37)
     
-    try:
-        while True:
-            actuator1.setheight(27)
-            sleep(10)
-            actuator1.setheight(34)
+    #try:
+        #while True:
+            #actuator1.setheight(27)
+            #sleep(10)
+            #actuator1.setheight(34)
             
-    except KeyboardInterrupt:
+    #except KeyboardInterrupt:
         #actuator1.stop()
     
     
-if __name__ == "__main__":
-    print("testing")
-    test_actuator1()
-"""
+#if __name__ == "__main__":
+    #print("testing")
+    #test_actuator1()
     
+
 
