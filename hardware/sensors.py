@@ -32,8 +32,11 @@ class VL53L0X: # the VL53L0X dist sensor, expected config (0, 8, 9)
         self.sensor = VL53L0X(i2c)
     
     def read(self):
-        time.sleep_ms(30)
-        return self.sensor.read()
+        self.sensor.start()
+        sleep(0.1)
+        distance = self.sensor.read()
+        self.sensor.stop()
+        return distance
     
 #in main.py: import TOFSensorArray, then tof_array = TOFSensorArray([],[])
 #left_distance = tof_array.read_left()
@@ -129,17 +132,6 @@ class TCS34725: # the colour sensor
         self.disable()
         self.onoff.value(0)
         return clear, red, green, blue
-
-onoff.value(1)
-            TCS3472.enable()
-            sleep(1)
-            clear, red, green, blue = TCS3472.read_raw()
-            print("Clear:", clear, "RGB:", red, green, blue)
-            TCS3472.disable()
-            onoff.value(0)
-
-
-
 
 class TMF8701:
     def __init__(self, device: DFRobot_TMF8701):
