@@ -266,7 +266,7 @@ def box_detection(vals, current_node, threshold):
 
 
 
-threshold = 240                                                                                #CHECK: measure this
+threshold = 260                                                                                #measured this
 
 color_node = {
 "Green": 39,
