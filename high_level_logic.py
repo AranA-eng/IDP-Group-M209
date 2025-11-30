@@ -219,7 +219,7 @@ def unload(count):
     return count
 
 def color_sensor_reading():
-    color_reading = TCS3472.read()
+    clear, red, green, blue = TCS3472.read()
 
     if (abs(red - green) < (0.1 * clear)) and ((red - blue) > (0.05 * clear)): #yellow box: has lower blue and similar RG values
         color = "Yellow"
@@ -235,7 +235,7 @@ def color_sensor_reading():
         #print("Green")
     return color
 
-def distance_sensor_reading():
+def distance_sensor_reading():                                                                                                    """what's happening with the distance sensors???"""
     if IR_sensors.read() == [0, 1, 1, 1]:      #need to use right sensor
         distance = 															#which sensor on which side?
     elif IR_sensors.read() == [1, 1, 1, 0]:    #need to use left sensor
