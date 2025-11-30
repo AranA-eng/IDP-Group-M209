@@ -136,32 +136,23 @@ class TCS34725: # the colour sensor
 class TMF8701:
     def __init__(self, device: DFRobot_TMF8701):
         self.dev = device
-        self.running = False
         
         while self.dev.begin() != 0:
             print("initialising")
             time.sleep(0.3)
         print("initialised")
 
-    def start(self):
-        """Start continuous measurement."""
-        self.dev.start_measurement(calib_m=self.dev.eMODE_NO_CALIB, mode=self.dev.ePROXIMITY)
-        self.running = True
-
-    def stop(self):
-        """Stop measurement."""
-        self.dev.stop_measurement()
-        self.running = False
-
     def read(self):
         """Returns distance in mm or None if not ready."""
-        if not self.running:
-            print("device not running")
-            return None
+        self.dev.start_measurement(calib_m=self.dev.eMODE_NO_CALIB, mode=self.dev.eDISTANCE)
+        
+        while self.dev.is_data_ready() != True:
+            sleep(0.02)
 
-        if self.dev.is_data_ready():
-            return self.dev.get_distance_mm()
-        return None
+        #print("data ready")
+        
+        distance = self.dev.get_distance_mm()
+        self.dev.stop_measurement()
 
+        return distance
 
-        return int((-0.32466 * r) + (1.57837 * g) + (-0.73191 * b))    
