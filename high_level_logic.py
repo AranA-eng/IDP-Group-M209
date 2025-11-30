@@ -181,15 +181,28 @@ def load(current_node, count):
         err = IR_sensors.compute_error(vals)
         corr = pid.update(err)
         jh.apply_motor_speeds(10000, corr, 0)
-    sleep(0.2)
+        
+    sleep(0.8)
     drive.stop()
-    actuator.setheight(34)
+    actuator.setheight(30)
+
+    """                                                                                        #TODO: check this, would replace the two lines after   
+    timer = time.ticks_ms()																#timer to reverse
+    while time.ticks_diff(time.ticks_ms(), timer) < 1800:
+        vals = read_sensors()
+        err = compute_error(vals)
+        corr = -pid.update(err)
+        apply_motor_speeds(-20000, corr, 0)
+    """
+
     drive.set(-20000, -20000)                                                                  #DONE: reverse a bit out the shelf
     time.sleep(3)                                                                              #TODO: need to enforce first turn of turn_sequence and set counter = 1
+
+    
     drive.stop()
     minor_node = router.graph.get_node(current_node).minor.id    #set current node to current.minor
     jh.turn(2)                                                                                 #DONE: need to do a junc = 2 turn, then set count to 1 I THINK
-    count = 1
+    count = 1    
     return minor_node, count
 
 def unload(count):
@@ -207,15 +220,19 @@ def unload(count):
 
 def color_sensor_reading():
     color_reading = TCS3472.read()
-    
-    if color_reading > 2000:                                                                    #CHECK: need boundaries
-        color = "Green"
-    elif color_reading > 1500:
-        color = "Red"
-    elif color_reading > 1000:
+
+    if (abs(red - green) < (0.1 * clear)) and ((red - blue) > (0.05 * clear)): #yellow box: has lower blue and similar RG values
         color = "Yellow"
-    else:
+        #print("Yellow")
+    elif (red > green) and (red > blue) and ((red-green) / clear > 0.05): #red box
+        color = "Red"
+        #print("Red")
+    elif (blue > red) and (blue > green) and ((red-green) / clear > 0.05): #blue box
         color = "Blue"
+        #print("Blue")
+    else: #green box
+        color = "Green"
+        #print("Green")
     return color
 
 def distance_sensor_reading():
@@ -240,16 +257,16 @@ def box_detection(vals, current_node, distance, threshold):
 
 
 
-threshold = 200                                                                                #CHECK: measure this
+threshold = 240                                                                                #CHECK: measure this
 
 color_node = {
-"Green": 1,
-"Blue": 2,
-"Red": 20,
-"Yellow": 21
+"Green": 39,
+"Blue": 40,
+"Red": 41,
+"Yellow": 42
 }
 
-color_node_val = [1,2,20,21]
+color_node_val = [39,40,41,42]
 
 ORANGE_END_NODE = 22
 PURPLE_END_NODE = 38
@@ -324,7 +341,6 @@ try:
                 junction_list = router.route(box_node, target_node)
                 turns = junction_list.turn_sequence
                 nodes = junction_list.path_nodes
-                count = 0 # reset counter
 
                 state = "NAV_TO_DEPOSIT"
                 
