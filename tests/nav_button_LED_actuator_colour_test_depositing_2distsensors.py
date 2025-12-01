@@ -392,10 +392,10 @@ try:
         err = compute_error(vals)
         corr = pid.update(err)
         
-        if nodes[-1] == 10:																	#only activate distance sensors during path outwards
+        if nodes[-1] == 12:																	#only activate distance sensors during path outwards
             i2c_clear(8, 9)
-            distance = TMF_get_distance()													#(assuming TMF on the right)
-        elif nodes[-1] == 12:
+            distance = TMF_get_distance()													#(VL on the right)
+        elif nodes[-1] == 10:
             i2c_clear(20, 21)
             distance = VL_get_distance()
         else:
@@ -520,4 +520,5 @@ try:
 
 finally:
     stop_all()
+
 
