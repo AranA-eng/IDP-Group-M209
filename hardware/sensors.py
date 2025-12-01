@@ -29,15 +29,21 @@ class IRSensorArray:
 class VL53L0X: # the VL53L0X dist sensor, expected config (0, 8, 9)
     def __init__(self, i2c):
         self.i2c = i2c
-        self.sensor = VL53L0X(i2c)
-'''   
+        self.dev = VL53L0X(i2c)
+        self.initialised = False
+   
     def read(self):
-        self.sensor.start()
-        sleep(0.1)
+        if self.initialised == False:
+            self.sensor.start()
+            self.initialised = True
+            
         distance = self.sensor.read()
-        self.sensor.stop()
         return distance
-'''
+
+    def end(self):
+        self.sensor.stop()
+        self.initialised = False
+
 
 #in main.py: import TOFSensorArray, then tof_array = TOFSensorArray([],[])
 #left_distance = tof_array.read_left()
@@ -133,36 +139,6 @@ class TCS34725: # the colour sensor
         self.disable()
         self.onoff.value(0)
         return clear, red, green, blue
-
-"""
-class TMF8701:
-    def __init__(self, device: DFRobot_TMF8701):
-        self.dev = device
-
-    def read(self):
-        
-        while self.dev.begin() != 0:
-            print("initialising")
-            time.sleep(0.3)
-        print("initialised")
-        
-        Returns distance in mm or None if not ready.
-        self.dev.start_measurement(calib_m=self.dev.eMODE_NO_CALIB, mode=self.dev.eDISTANCE)
-        
-        while self.dev.is_data_ready() != True:
-            sleep(0.02)
-
-        #print("data ready")
-        
-        distance = 0
-        
-        while self.dev.get_distance_mm() == 0:
-            distance = self.dev.get_distance_mm()
-            
-        self.dev.stop_measurement()
-
-        return distance
-"""
     
 
 class TMF8701:
@@ -192,7 +168,8 @@ class TMF8701:
 
     def read(self):
         """Return a stable distance measurement in mm."""
-        self.init()   # ensure initialised once
+        if self.initialised == False:
+            self.init()   # ensure initialised once
 
         # Only read when data is ready
         while not self.dev.is_data_ready():
@@ -211,3 +188,7 @@ class TMF8701:
                     return 10000                                            #if we get a bad read, make the distance huge so that it doesn't pass the box detection test
 
         return distance
+
+    def end(self):
+        self.dev.stop_measurement()
+        self.initialised = False
