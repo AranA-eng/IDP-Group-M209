@@ -36,8 +36,8 @@ actuator = act.Actuator(dirPin, PWMPin)
 
 # i2c buses
 i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)
-i2c_VL53L0X = I2C(id = 1, sda = Pin(8), scl = Pin(9))                                               #Currently assuming this is on the right side
-i2c_TMF8701 = I2C(id = 0, sda = Pin(2), scl = Pin(3))                                               #Currently not being used, but assumend on the left side
+i2c_VL53L0X = I2C(id = 0, sda = Pin(8), scl = Pin(9))                                               #Currently on the right side
+i2c_TMF8701 = I2C(id = 0, sda = Pin(20), scl = Pin(21))                                             #Currently on the left side
 
 # onoff pin for colour sensor                                                                      
 onoff = Pin(14, Pin.OUT)
@@ -69,10 +69,12 @@ base_speed = 45000 # base speed
 pid = PID(Kp, Ki, Kd, dt_ms, out_min= - max_pwm, out_max = max_pwm)
 drive = mo.DiffDrive(left_motor, right_motor)
 jh = JunctionHandler(drive, 0, max_pwm)
+current_node = -1
 count = 0
 orange_counter = 0
 purple_counter = 0
 box_node = 0
+ISON = None
 
 orange_branches = [3, 4, 5, 6, 7, 8, 23, 24, 25, 26, 27, 28]
 purple_branches = [14, 15, 16, 17, 18, 19, 32, 33, 34, 35, 36, 37]
@@ -221,6 +223,17 @@ def unload(count):
     count = 1
     return count
 
+def i2c_clear(scl_pin, sda_pin):
+    scl = Pin(scl_pin, Pin.OUT, value=1)
+    sda = Pin(sda_pin, Pin.OUT, value=1)
+    for _ in range(9):
+        scl.low(); sleep(0.001)
+        scl.high(); sleep(0.001)
+    # STOP
+    sda.low(); sleep(0.001)
+    scl.high(); sleep(0.001)
+    sda.high(); sleep(0.001)
+
 def color_sensor_reading():
     clear, red, green, blue = TCS3472.read()
 
@@ -238,17 +251,6 @@ def color_sensor_reading():
         #print("Green")
     return color
 
-
-def distance_sensor_reading():                                                                                                       #what's happening with the distance sensors???
-    if IR_sensors.read() == [0, 1, 1, 1]:      #need to use right sensor                                                             might need to change flow
-        distance = VL53L0X.read()
-    elif IR_sensors.read() == [1, 1, 1, 0]:    #need to use left sensor
-        distance = TMF8701.read()
-    else:
-        distance = 0  #doesn't affect logic for box_detection since this case won't be while a junction is detected and in the correct node space
-    return distance
-
-
 def box_detection(vals, current_node, distance, threshold):    
     # the line sensor must read the junction values
     on_junction = vals in junction_sensor_values
@@ -262,7 +264,7 @@ def box_detection(vals, current_node, distance, threshold):
 
 
 
-threshold = 260                                                                                #measured this
+threshold = 290                                                                                #measured this
 
 color_node = {
 "Green": 39,
@@ -302,7 +304,8 @@ finally:
 
 led.value(1)
 
-actuator.reset()
+#actuator.reset()
+actuator.height = 0												#might need to change this based on bottom height of wooden forklift
 actuator.setheight(20)
 
 try: 
@@ -328,8 +331,29 @@ try:
         if state == "FOLLOW_LINE":
             actuator.setheight(20)
             jh.apply_motor_speeds(base_speed, corr, junction)
-
-            distance = distance_sensor_reading()
+            
+            
+            
+            if current_node = 2 or current_node = 31:
+                if ISON == "TMF":
+                    TMF8701.end()
+                device = "VL"
+                i2c_clear(20, 21)
+            
+            elif current_node = 20 and current_node = 29:
+                if ISON == "VL"
+                    VL53L0X.end()
+                device = "TMF"
+                i2c_clear(8, 9)
+            
+            if device = "VL":
+                distance = VL53L0X.read()
+                ISON = "VL"
+            elif device = "TMF":
+                distance = TMF8701.read()
+                ISON = "TMF"
+                
+                
             
             if box_detection(vals, current_node, distance, threshold):
                 
