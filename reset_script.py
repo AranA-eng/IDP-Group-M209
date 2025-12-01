@@ -1,0 +1,7 @@
+from hardware import sensors as sen
+
+dirPin = 0
+PWMPin = 1
+
+actuator = act.Actuator(dirPin, PWMPin)
+actuator.reset()
