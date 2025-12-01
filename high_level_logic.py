@@ -40,7 +40,7 @@ i2c_VL53L0X = I2C(id = 1, sda = Pin(8), scl = Pin(9))                           
 i2c_TMF8701 = I2C(id = 0, sda = Pin(2), scl = Pin(3))                                               #Currently not being used, but assumend on the left side
 
 # onoff pin for colour sensor                                                                      
-onoff = Pin(14, Pin.out)
+onoff = Pin(14, Pin.OUT)
 onoff.value(1)
 
 # sensors initialisation
