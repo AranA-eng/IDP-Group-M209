@@ -392,7 +392,7 @@ try:
         err = compute_error(vals)
         corr = pid.update(err)
         
-        distance = TMF_get_distance()													#NEW: (assuming TMF on the right)
+        distance = VL_get_distance()													#NEW: (assuming VL on the right)
         
         current_node = nodes[count]
         
@@ -502,3 +502,4 @@ try:
 
 finally:
     stop_all()
+
