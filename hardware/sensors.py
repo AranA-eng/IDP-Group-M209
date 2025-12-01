@@ -30,14 +30,15 @@ class VL53L0X: # the VL53L0X dist sensor, expected config (0, 8, 9)
     def __init__(self, i2c):
         self.i2c = i2c
         self.sensor = VL53L0X(i2c)
-    
+'''   
     def read(self):
         self.sensor.start()
         sleep(0.1)
         distance = self.sensor.read()
         self.sensor.stop()
         return distance
-    
+'''
+
 #in main.py: import TOFSensorArray, then tof_array = TOFSensorArray([],[])
 #left_distance = tof_array.read_left()
 #right_distance = tof_array.read_right()
@@ -133,17 +134,19 @@ class TCS34725: # the colour sensor
         self.onoff.value(0)
         return clear, red, green, blue
 
+"""
 class TMF8701:
     def __init__(self, device: DFRobot_TMF8701):
         self.dev = device
+
+    def read(self):
         
         while self.dev.begin() != 0:
             print("initialising")
             time.sleep(0.3)
         print("initialised")
-
-    def read(self):
-        """Returns distance in mm or None if not ready."""
+        
+        Returns distance in mm or None if not ready.
         self.dev.start_measurement(calib_m=self.dev.eMODE_NO_CALIB, mode=self.dev.eDISTANCE)
         
         while self.dev.is_data_ready() != True:
@@ -151,8 +154,60 @@ class TMF8701:
 
         #print("data ready")
         
-        distance = self.dev.get_distance_mm()
+        distance = 0
+        
+        while self.dev.get_distance_mm() == 0:
+            distance = self.dev.get_distance_mm()
+            
         self.dev.stop_measurement()
 
         return distance
+"""
+    
 
+class TMF8701:
+    def __init__(self, device: DFRobot_TMF8701):
+        self.dev = device
+        self.initialised = False
+
+    def init(self):
+        """Initialise & start measurement ONCE."""
+        if self.initialised:
+            return
+
+        # Initialise
+        while self.dev.begin() != 0:
+            print("initialising")
+            time.sleep(0.3)
+
+        #print("TMF8701 initialised")
+
+        # Start continuous measurement
+        self.dev.start_measurement(
+            calib_m=self.dev.eMODE_NO_CALIB,
+            mode=self.dev.eDISTANCE
+        )
+
+        self.initialised = True
+
+    def read(self):
+        """Return a stable distance measurement in mm."""
+        self.init()   # ensure initialised once
+
+        # Only read when data is ready
+        while not self.dev.is_data_ready():
+            sleep(0.05)
+        
+        distance = self.dev.get_distance_mm()
+
+        if distance == 0:
+            while not self.dev.is_data_ready():
+                d2 = self.dev.get_distance_mm()
+                if d2 > 0:
+                    return d2
+                else:
+                    #print("bad read")
+                    self.read()
+                    return 10000                                            #if we get a bad read, make the distance huge so that it doesn't pass the box detection test
+
+        return distance
