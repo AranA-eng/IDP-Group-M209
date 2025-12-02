@@ -9,7 +9,7 @@ from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8801, DFRobot_TMF870
 import time
 from utime import sleep
 
-IR_PINS = [12, 13, 11, 10] #adjust accordingly
+IR_PINS = [13, 12, 11, 10] #adjust accordingly
 
 # Motor pins - adjust accordingly -------------------------------------------------------------------------------------------------------
 motor_left_pwm_pin = 5
@@ -229,7 +229,7 @@ def turn(dir):
     #---verify signs when we test---
     if dir == 1: #left turn
         sleep(0.4)
-        while read_sensors() != [0, 1, 1, 0]:
+        while read_sensors() != [0, 1, 0, 0] or read_sensors() != [1, 1, 0, 0] or read_sensors() != [0, 0, 1, 1]:
             print(read_sensors())
             left_motor.set(-55000)
             right_motor.set(55000)
@@ -237,7 +237,7 @@ def turn(dir):
         
     elif dir == -1: #right turn
         sleep(0.4)
-        while read_sensors() != [0, 1, 1, 0]:
+        while read_sensors() != [0, 0, 1, 0] or read_sensors() != [1, 1, 0, 0] or read_sensors() != [0, 0, 1, 1]:
             left_motor.set(55000)
             right_motor.set(-55000)
 
@@ -247,7 +247,7 @@ def turn(dir):
         left_motor.set(-55000)
         right_motor.set(55000)
         sleep(0.2)
-        while read_sensors() != [0, 1, 1, 0]:
+        while read_sensors() != [0, 1, 0, 0] or read_sensors() != [1, 1, 0, 0] or read_sensors() != [0, 0, 1, 1]:
             left_motor.set(-55000)
             right_motor.set(55000)
 
@@ -291,8 +291,8 @@ finally:
 led_on = 1
 led.value(led_on)
 
-#actuator.reset()										
-actuator.height = 0
+actuator.reset()										
+#actuator.height = 0
 actuator.setheight(20)
 
 
@@ -360,7 +360,7 @@ try:
         result = turn_follower(turns, vals, count)
         if result is not None: 
             junction, count = result
-            print(junction)
+            #print(junction)
         else: 
             junction = 0 # go straight
         #print(f"applying {junction} to motors")
@@ -370,20 +370,26 @@ try:
         if current_node == 43:
             left_motor.set(0)
             right_motor.set(0)  
-            actuator.setheight(27)
+            actuator.setheight(33)
             while read_sensors() != [0, 0, 0, 0]:
                 apply_motor_speeds(15000, corr, 0)
-            sleep(0.8)
+            sleep(1)
             left_motor.set(0)
             right_motor.set(0)
-            actuator.setheight(30)
+            actuator.setheight(38)
             
+            
+            left_motor.set(-20000)
+            right_motor.set(-20000)
+            sleep(1.8)
+            '''
             t_start = time.ticks_ms()																#NEW: timer to reverse
             while time.ticks_diff(time.ticks_ms(), t_start) < 1800:
                 vals = read_sensors()
                 err = compute_error(vals)
                 corr = -pid.update(err)
                 apply_motor_speeds(-20000, corr, 0)
+            '''
             
             turn(2)
             
@@ -433,3 +439,4 @@ try:
 
 finally:
     stop_all()
+
