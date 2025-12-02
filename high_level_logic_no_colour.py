@@ -56,7 +56,7 @@ count = 0
 orange_counter = 0
 purple_counter = 0
 box_node = 0
-ISON = None
+ISON = "None"
 
 orange_branches = [3, 4, 5, 6, 7, 8, 23, 24, 25, 26, 27, 28]
 purple_branches = [14, 15, 16, 17, 18, 19, 32, 33, 34, 35, 36, 37]
@@ -154,10 +154,17 @@ def load(current_node, count):
     drive.stop()
     
     if current_node < 21:
-        actuator.setheight(32)
+        actuator.setheight(30)
     else:
         actuator.setheight(3)
+    
+    while IR_sensors.read() not in ([1, 1, 1, 0], [0, 1, 1, 1]):
+        drive.set(-55000, -55000)
 
+    drive.stop()
+    
+    drive.set(45000, 45000)
+    
     if IR_sensors.read() == [0, 1, 1, 1]:
         jh.turn(-1)  #turn right
     else:
@@ -167,19 +174,21 @@ def load(current_node, count):
         vals = IR_sensors.read()
         err = IR_sensors.compute_error(vals)
         corr = pid.update(err)
-        jh.apply_motor_speeds(15000, corr, 0)
+        jh.apply_motor_speeds(19000, corr, 0)
         
     sleep(1.0)
     drive.stop()
     actuator.setheight(39)
 
-    drive.set(-20000, -20000)                                                                  #reverse a bit out the shelf
+    drive.set(-24000, -20000)                                                                  #reverse a bit out the shelf
     time.sleep(2.3)               
 
     
     drive.stop()
     minor_node = router.graph.get_node(current_node).minor.id    #set current node to current.minor
     jh.turn(2)                                                                                 #need to do a junc = 2 turn, then set count to 1
+    drive.set(-24000, -20000)
+    sleep(1.5)
     count = 1    
     return minor_node, count
 
@@ -188,7 +197,7 @@ def unload(count):
     time.sleep(1.2)
     drive.stop()
     actuator.setheight(0)
-    drive.set(-20000, -20000)                                                                  #reverse a bit out the bay, simply needs to stop at the bay node
+    drive.set(-23000, -20000)                                                                  #reverse a bit out the bay, simply needs to stop at the bay node
     time.sleep(2)                                                                              #ideally the robot will stop at the bay node since the sleep times are the same 
     drive.stop() 
     actuator.setheight(20)                                                                     #keep fork off ground in case we go to ramp
@@ -245,9 +254,11 @@ junction_sensor_values = [[0,1,1,1], [1,1,1,0], [1,1,1,1]]
 
 graph = rt.RouteGraph(nodedirections) 
 router = rt.Router(graph)
-junction_list = router.route(0, 22)
+junction_list = router.route(-1, 22)
 turns = junction_list.turn_sequence
 nodes = junction_list.path_nodes
+#print(turns)
+#print(nodes)
 
 # Initialisations
 device = None
@@ -291,36 +302,43 @@ try:
         if state == "FOLLOW_LINE":
             actuator.setheight(20)
             jh.apply_motor_speeds(base_speed, corr, junction)
-            
+            #print(junction)
 
-# sensors initialisation===================================================================================================================================================================================================================================================
-
-            
+# sensors initialisation==================================================================================================================================================================================================================================================
             
             if current_node == 2 or current_node == 31:
+                if ISON == "None":
+                    device = "VL"
+                    i2c_clear(20, 21)
+                    VL53L0X = sen.VL53L0X(I2C(id = 0, sda = Pin(8), scl = Pin(9)))                                                                  #now can write VL53L0X.read(), .read(), .stop()
+                    VL53L0X.dev.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[0], 18)
+                    VL53L0X.dev.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[1], 14)
+                    ISON = "VL"
+                    
                 if ISON == "TMF":
                     TMF8701.end()
-                device = "VL"
-                i2c_clear(20, 21)
-                VL53L0X = sen.VL53L0X(I2C(id = 0, sda = Pin(8), scl = Pin(9)))                                                                  #now can write VL53L0X.read(), .read(), .stop()
-                VL53L0X.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[0], 18)
-                VL53L0X.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[1], 14)
+                    device = "VL"
+                    i2c_clear(20, 21)
+                    VL53L0X = sen.VL53L0X(I2C(id = 0, sda = Pin(8), scl = Pin(9)))                                                                  #now can write VL53L0X.read(), .read(), .stop()
+                    VL53L0X.dev.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[0], 18)
+                    VL53L0X.dev.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[1], 14)
+                    ISON = "VL"
             
-            elif current_node == 20 and current_node == 29:
+            elif current_node == 20 or current_node == 29:
                 if ISON == "VL":
                     VL53L0X.end()
-                device = "TMF"
-                i2c_clear(8, 9)
-                tof = DFRobot_TMF8701(I2C(id = 0, sda = Pin(20), scl = Pin(21)))
-                TMF8701 = sen.TMF8701(tof)                                                                          #now can write TMF8701.start(), .read(), .stop()
+                    device = "TMF"
+                    i2c_clear(8, 9)
+                    tof = DFRobot_TMF8701(I2C(id = 0, sda = Pin(20), scl = Pin(21)))
+                    TMF8701 = sen.TMF8701(tof)                                                                          #now can write TMF8701.start(), .read(), .stop()
 
             
             if device == "VL":
                 distance = VL53L0X.read()
-                ISON = "VL"
+                #print(distance)
             elif device == "TMF":
                 distance = TMF8701.read()
-                ISON = "TMF"
+                #print(distance)
                 
                 
             
