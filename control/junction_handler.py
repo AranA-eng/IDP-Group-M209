@@ -1,9 +1,6 @@
 from hardware import Motor, IRSensorArray
 from utime import sleep
 
-
-
-
 class JunctionHandler: # handling left and right motor
     """class for handling corners"""
     def __init__(self, motors, min_pwm, max_pwm, sensors):
@@ -43,22 +40,19 @@ class JunctionHandler: # handling left and right motor
             sleep(0.4)
             while self.sensors.read() != [0, 1, 0, 0]:
                 #print(read_sensors())
-                left_motor.set(-55000)
-                right_motor.set(55000)
+                self.motors.set(-55000, 55000)
 
             
         elif dir == -1: #right turn
             sleep(0.4)
             while self.sensors.read() != [0, 0, 1, 0]:
-                left_motor.set(55000)
-                right_motor.set(-55000)
+                self.motors.set(55000, -55000)
     
     
         elif dir == 2:
             sleep(0.2)
-            left_motor.set(-55000)
-            right_motor.set(55000)
-            sleep(2.0)
+                self.motors.set(-55000, 55000)
+            sleep(2)
 
     
 
@@ -69,3 +63,4 @@ class JunctionHandler: # handling left and right motor
         
 
     
+
