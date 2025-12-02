@@ -63,15 +63,15 @@ led_on = 0
 prev = 0
 
 #Colour sensor setup
-i2c_clear(14,15)
-sleep(0.5)
-onoff = Pin(17, Pin.OUT)
-onoff.value(1)
-i2c_colour = I2C(id = 1, scl = Pin(15), sda = Pin(14), freq = 400000)        
-TCS3472 = sen.TCS34725(i2c_colour, onoffpin = onoff)                                                #DONE: now can write TCS3472.read()
-onoff.value(0)
+#i2c_clear(14,15)
+#sleep(0.5)
+#onoff = Pin(17, Pin.OUT)
+#onoff.value(1)
+#i2c_colour = I2C(id = 1, scl = Pin(15), sda = Pin(14), freq = 400000)        
+#TCS3472 = sen.TCS34725(i2c_colour, onoffpin = onoff)                                                #DONE: now can write TCS3472.read()
+#onoff.value(0)
 
-colour_nodes_list = [39, 40, 41, 42]
+colour_nodes_list = [40]
 
 # map of the nodes
 nodedirections = {
@@ -242,15 +242,15 @@ def turn(dir):
     #---verify signs when we test---
     if dir == 1: #left turn
         sleep(0.4)
-        while read_sensors() != [0, 1, 0, 0]:
-            print(read_sensors())
+        while read_sensors() not in ([0,0,1,0], [0,1,0,0]):
+            #print(read_sensors())
             left_motor.set(-55000)
             right_motor.set(55000)
 
         
     elif dir == -1: #right turn
         sleep(0.4)
-        while read_sensors() != [0, 0, 1, 0]:
+        while read_sensors() not in ([0,0,1,0], [0,1,0,0]):
             left_motor.set(55000)
             right_motor.set(-55000)
 
@@ -259,19 +259,10 @@ def turn(dir):
         sleep(0.2)
         left_motor.set(-35000)
         right_motor.set(35000)
-        sleep(0.2)
-        while read_sensors() not in ([0, 1, 0, 0], [0, 0, 1, 0], [1, 1, 0, 0], [0, 0, 1, 1]):
-            left_motor.set(-35000)
-            right_motor.set(35000)
-            
-    elif dir == 3:
-        sleep(0.2)
-        left_motor.set(-35000)
-        right_motor.set(35000)
-        sleep(0.2)
-        while read_sensors() not in ([0, 1, 0, 0], [0, 0, 1, 0], [1, 1, 0, 0], [0, 0, 1, 1]):
-            left_motor.set(-35000)
-            right_motor.set(35000)
+        sleep(2)
+        #while read_sensors() not in ([0, 1, 0, 0], [0, 0, 1, 0], [1, 1, 0, 0], [0, 0, 1, 1]):
+        #    left_motor.set(-35000)
+        #    right_motor.set(35000)
         
     
 def stop_all():
@@ -352,7 +343,7 @@ try:
     while True:      
         t_start = time.ticks_ms()
         vals = read_sensors()
-        print(vals)
+        #print(vals)
         err = compute_error(vals)
         corr = pid.update(err)
         
@@ -366,18 +357,19 @@ try:
                 left_motor.set(0)
                 right_motor.set(0)
                 actuator.setheight(0)
-                actuator.setheight(20)
 
                 while read_sensors() not in junction_sensor_values:						#want to end on the line
                     left_motor.set(-10000)
                     right_motor.set(-10000)
                 
+                actuator.setheight(20)
                 left_motor.set(0)
                 right_motor.set(0)
                 sleep(5)
         
         # once new node is detected, returns the behaviour that needs to happen, as well as incrementing count
         #print(vals)
+        
         result = turn_follower(turns, vals, count)
         if result is not None: 
             junction, count = result
@@ -404,48 +396,39 @@ try:
             
             left_motor.set(-20000)
             right_motor.set(-20000)
-            sleep(1.8)
-            '''
-            t_start = time.ticks_ms()																#NEW: timer to reverse
-            while time.ticks_diff(time.ticks_ms(), t_start) < 1800:
-                vals = read_sensors()
-                err = compute_error(vals)
-                corr = -pid.update(err)
-                apply_motor_speeds(-20000, corr, 0)
-            '''
+            sleep(2.3)
             
-            turn(2)
+            turn(2)   
             
-            
-            sleep(1)
+            #sleep(1)
             left_motor.set(0)
             right_motor.set(0)
-            onoff.value(1)
-            TCS3472.enable()
+            #onoff.value(1)
+            #TCS3472.enable()
             sleep(1)
-            clear, red, green, blue = TCS3472.read_raw()
-            print("Clear:", clear, "RGB:", red, green, blue)
-            TCS3472.disable()
-            onoff.value(0)
-            colour_node = None
+            #clear, red, green, blue = TCS3472.read_raw()
+            #print("Clear:", clear, "RGB:", red, green, blue)
+            #TCS3472.disable()
+            #onoff.value(0)
+            #colour_node = None
             
-            if (abs(red - green) < (0.1 * clear)) and ((red - blue) > (0.05 * clear)): #yellow box: has lower blue and similar RG values
-                colour_node = 42
-                print("yellow")
-            elif (red > green) and (red > blue) and ((red-green) / clear > 0.05): #red box
-                colour_node = 41
-                print("red")
-            elif (blue > red) and (blue > green) and ((red-green) / clear > 0.05): #blue box
-                colour_node = 40
-                print("blue")
-            else: #green box
-                colour_node = 39
-                print("green")
+            #if (abs(red - green) < (0.1 * clear)) and ((red - blue) > (0.05 * clear)): #yellow box: has lower blue and similar RG values
+            #    colour_node = 42
+            #    print("yellow")
+            #elif (red > green) and (red > blue) and ((red-green) / clear > 0.05): #red box
+            #    colour_node = 41
+            #    print("red")
+            #elif (blue > red) and (blue > green) and ((red-green) / clear > 0.05): #blue box
+            #    colour_node = 40
+            #    print("blue")
+            #else: #green box
+            #    colour_node = 39
+            #    print("green")
                 
             #print(colour_node)
             #sleep(10)
             
-                																
+            colour_node = 40    																
             count = 1															
             graph = rt.RouteGraph(nodedirections) 
             router = rt.Router(graph)
