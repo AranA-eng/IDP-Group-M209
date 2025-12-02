@@ -52,7 +52,7 @@ class JunctionHandler: # handling left and right motor
         elif dir == 2:
             sleep(0.2)
             self.motors.set(-55000, 55000)
-            sleep(2)
+            sleep(1.4)
 
     
 
@@ -63,4 +63,5 @@ class JunctionHandler: # handling left and right motor
         
 
     
+
 
