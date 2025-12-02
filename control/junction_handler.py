@@ -38,12 +38,13 @@ class JunctionHandler: # handling left and right motor
             self.turn(junction)
 
     def turn(self, dir):
-        sleep(0.4)
         #---verify signs when we test---    dir == 1 means left turn
-        while read_sensors() != [0, 1, 1, 0]:
-            #print(read_sensors())
-            left_motor.set(-55000)
-            right_motor.set(55000)
+        if dir == 1:
+            sleep(0.4)
+            while read_sensors() != [0, 1, 1, 0]:
+                #print(read_sensors())
+                left_motor.set(-55000)
+                right_motor.set(55000)
 
             
         elif dir == -1: #right turn
