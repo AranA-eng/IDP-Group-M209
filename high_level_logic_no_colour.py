@@ -249,6 +249,9 @@ junction_list = router.route(0, 22)
 turns = junction_list.turn_sequence
 nodes = junction_list.path_nodes
 
+# Initialisations
+device = None
+distance = 10000 #arbitrarily high values
 
 
 try:
