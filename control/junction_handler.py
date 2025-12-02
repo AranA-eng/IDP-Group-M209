@@ -41,7 +41,7 @@ class JunctionHandler: # handling left and right motor
         #---verify signs when we test---    dir == 1 means left turn
         if dir == 1:
             sleep(0.4)
-            while read_sensors() != [0, 1, 0, 0]:
+            while self.sensors.read() != [0, 1, 0, 0]:
                 #print(read_sensors())
                 left_motor.set(-55000)
                 right_motor.set(55000)
@@ -49,7 +49,7 @@ class JunctionHandler: # handling left and right motor
             
         elif dir == -1: #right turn
             sleep(0.4)
-            while read_sensors() != [0, 0, 1, 0]:
+            while self.sensors.read() != [0, 0, 1, 0]:
                 left_motor.set(55000)
                 right_motor.set(-55000)
     
@@ -58,10 +58,7 @@ class JunctionHandler: # handling left and right motor
             sleep(0.2)
             left_motor.set(-55000)
             right_motor.set(55000)
-            sleep(0.2)
-            while read_sensors() != [0, 1, 0, 0] or read_sensors() != [1, 1, 0, 0] or read_sensors() != [0, 0, 1, 1]:
-                left_motor.set(-55000)
-                right_motor.set(55000)
+            sleep(2.0)
 
     
 
