@@ -9,6 +9,17 @@ from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8801, DFRobot_TMF870
 import time
 from utime import sleep
 
+def i2c_clear(scl_pin, sda_pin):
+    scl = Pin(scl_pin, Pin.OUT, value=1)
+    sda = Pin(sda_pin, Pin.OUT, value=1)
+    for _ in range(9):
+        scl.low(); sleep(0.001)
+        scl.high(); sleep(0.001)
+    # STOP
+    sda.low(); sleep(0.001)
+    scl.high(); sleep(0.001)
+    sda.high(); sleep(0.001)
+
 IR_PINS = [13, 12, 11, 10] #adjust accordingly
 
 # Motor pins - adjust accordingly -------------------------------------------------------------------------------------------------------
@@ -52,6 +63,8 @@ led_on = 0
 prev = 0
 
 #Colour sensor setup
+i2c_clear(14,15)
+sleep(0.5)
 onoff = Pin(17, Pin.OUT)
 onoff.value(1)
 i2c_colour = I2C(id = 1, scl = Pin(15), sda = Pin(14), freq = 400000)        
@@ -229,7 +242,7 @@ def turn(dir):
     #---verify signs when we test---
     if dir == 1: #left turn
         sleep(0.4)
-        while read_sensors() != [0, 1, 0, 0] or read_sensors() != [1, 1, 0, 0] or read_sensors() != [0, 0, 1, 1]:
+        while read_sensors() != [0, 1, 0, 0]:
             print(read_sensors())
             left_motor.set(-55000)
             right_motor.set(55000)
@@ -237,20 +250,28 @@ def turn(dir):
         
     elif dir == -1: #right turn
         sleep(0.4)
-        while read_sensors() != [0, 0, 1, 0] or read_sensors() != [1, 1, 0, 0] or read_sensors() != [0, 0, 1, 1]:
+        while read_sensors() != [0, 0, 1, 0]:
             left_motor.set(55000)
             right_motor.set(-55000)
 
 
     elif dir == 2:
         sleep(0.2)
-        left_motor.set(-55000)
-        right_motor.set(55000)
+        left_motor.set(-35000)
+        right_motor.set(35000)
         sleep(0.2)
-        while read_sensors() != [0, 1, 0, 0] or read_sensors() != [1, 1, 0, 0] or read_sensors() != [0, 0, 1, 1]:
-            left_motor.set(-55000)
-            right_motor.set(55000)
-
+        while read_sensors() not in ([0, 1, 0, 0], [0, 0, 1, 0], [1, 1, 0, 0], [0, 0, 1, 1]):
+            left_motor.set(-35000)
+            right_motor.set(35000)
+            
+    elif dir == 3:
+        sleep(0.2)
+        left_motor.set(-35000)
+        right_motor.set(35000)
+        sleep(0.2)
+        while read_sensors() not in ([0, 1, 0, 0], [0, 0, 1, 0], [1, 1, 0, 0], [0, 0, 1, 1]):
+            left_motor.set(-35000)
+            right_motor.set(35000)
         
     
 def stop_all():
@@ -331,7 +352,7 @@ try:
     while True:      
         t_start = time.ticks_ms()
         vals = read_sensors()
-        #print(vals)
+        print(vals)
         err = compute_error(vals)
         corr = pid.update(err)
         
@@ -370,10 +391,12 @@ try:
         if current_node == 43:
             left_motor.set(0)
             right_motor.set(0)  
-            actuator.setheight(33)
+            actuator.setheight(32)
             while read_sensors() != [0, 0, 0, 0]:
+                err = compute_error(read_sensors())
+                corr = pid.update(err)
                 apply_motor_speeds(15000, corr, 0)
-            sleep(1)
+            sleep(1.4)
             left_motor.set(0)
             right_motor.set(0)
             actuator.setheight(38)
