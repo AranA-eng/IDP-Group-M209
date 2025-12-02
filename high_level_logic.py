@@ -334,22 +334,22 @@ try:
             
             
             
-            if current_node = 2 or current_node = 31:
+            if current_node == 2 or current_node == 31:
                 if ISON == "TMF":
                     TMF8701.end()
                 device = "VL"
                 i2c_clear(20, 21)
             
-            elif current_node = 20 and current_node = 29:
-                if ISON == "VL"
+            elif current_node == 20 and current_node == 29:
+                if ISON == "VL":
                     VL53L0X.end()
                 device = "TMF"
                 i2c_clear(8, 9)
             
-            if device = "VL":
+            if device == "VL":
                 distance = VL53L0X.read()
                 ISON = "VL"
-            elif device = "TMF":
+            elif device == "TMF":
                 distance = TMF8701.read()
                 ISON = "TMF"
                 
