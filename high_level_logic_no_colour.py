@@ -1,10 +1,12 @@
+#colour sensor stopped working, so this is a modified overall game logic that ignores the colour detection phase
+
+
 from hardware import motor as mo
 from hardware import sensors as sen
 from hardware import linear_actuator as act
 from control import PID, JunctionHandler
 from navigation import robot_routing as rt
 from machine import Pin, ADC, PWM, SoftI2C, I2C
-from libs.tcs3472_micropython.tcs3472 import tcs3472
 from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8801, DFRobot_TMF8701
 import time
 from utime import sleep
@@ -34,26 +36,9 @@ left_motor = mo.Motor(LEFT_DIR, LEFT_PWM)
 right_motor = mo.Motor(RIGHT_DIR, RIGHT_PWM)
 actuator = act.Actuator(dirPin, PWMPin)
 
-# i2c buses
-i2c_colour = I2C(id = 1, sda = Pin(14), scl = Pin(15), freq = 400000)
-i2c_VL53L0X = I2C(id = 0, sda = Pin(8), scl = Pin(9))                                               #Currently on the right side
-i2c_TMF8701 = I2C(id = 0, sda = Pin(20), scl = Pin(21))                                             #Currently on the left side
-
-# onoff pin for colour sensor                                                                      
-onoff = Pin(14, Pin.OUT)
-onoff.value(1)
-
-# sensors initialisation
-tof = DFRobot_TMF8701(i2c_TMF8701)
-TMF8701 = sen.TMF8701(tof)                                                                          #now can write TMF8701.start(), .read(), .stop()
-VL53L0X = sen.VL53L0X(i2c_VL53L0X)                                                                  #now can write VL53L0X.read(), .read(), .stop()
-TCS3472 = sen.TCS34725(i2c_colour, onoffpin = onoff)                                                #now can write TCS3472.read()
-
-VL53L0X.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[0], 18)
-VL53L0X.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[1], 14)
 
 # line sensor pins
-IR_PINS = [12, 13, 11, 10]
+IR_PINS = [13, 12, 11, 10]
 line_sensor_weights = [-5.0, -2.0, 2.0, 5.0]
 IR_sensors = sen.IRSensorArray(IR_PINS, line_sensor_weights)
 
@@ -68,44 +53,96 @@ base_speed = 45000 # base speed
 
 pid = PID(Kp, Ki, Kd, dt_ms, out_min= - max_pwm, out_max = max_pwm)
 drive = mo.DiffDrive(left_motor, right_motor)
-jh = JunctionHandler(drive, 0, max_pwm)
+jh = JunctionHandler(drive, 0, max_pwm, IR_sensors)
 current_node = -1
 count = 0
 orange_counter = 0
 purple_counter = 0
 box_node = 0
-ISON = None
+ISON = "None"
 
-# nodes at which distance to shelf needs to be checked for boxes
 orange_branches = [3, 4, 5, 6, 7, 8, 23, 24, 25, 26, 27, 28]
 purple_branches = [14, 15, 16, 17, 18, 19, 32, 33, 34, 35, 36, 37]
 
 # map of the nodes
 nodedirections = {
     -1: (10, 10, 1, -1, 0), #note that for the minor nodes, minordirs means the direction to turn at their major links to go f or b
-    0: (10, 10, 1, -1, -1),    1: (10, 10, 1, -1, 39),     2: (-1, 1, 1, 10, 40),     3: (10, 10, -1, 1, 43),    4: (10, 10, -1, 1, 44),
-    5: (10, 10, -1, 1, 45),    6: (10, 10, -1, 1, 46),     7: (10, 10, -1, 1, 47),    8: (10, 10, -1, 1, 48),    9: (10, 10, 10, 10, None),
-    10: (-1, 1, 10, 10, None), 
+    0: (10, 10, 1, -1, -1),
+    1: (10, 10, 1, -1, 39),
+    2: (-1, 1, 1, 10, 40),
+    3: (10, 10, -1, 1, 43),
+    4: (10, 10, -1, 1, 44),
+    5: (10, 10, -1, 1, 45),
+    6: (10, 10, -1, 1, 46),
+    7: (10, 10, -1, 1, 47),
+    8: (10, 10, -1, 1, 48),
+    9: (10, 10, 10, 10, None),
+    10: (-1, 1, 10, 10, None),
     11: (10, 10, -1, 1, 30), #link to other main branch
-    12: (-1, 1, 10, 10, None), 13: (10, 10, 10, 10, None), 14: (10, 10, -1, 1, 49),   15: (10, 10, -1, 1, 50),   16: (10, 10, -1, 1, 51),
-    17: (10, 10, -1, 1, 52),   18: (10, 10, -1, 1, 53),    19: (10, 10, -1, 1, 54),   20: (-1, 1, 10, -1, 41),   21: (10, 10, 1, -1, 42),
-    22: (10, 2, 10, 10, None), 23: (10, 10, -1, 1, 55),    24: (10, 10, -1, 1, 56),   25: (10, 10, -1, 1, 57),   26: (10, 10, -1, 1, 58),
-    27: (10, 10, -1, 1, 59),   28: (10, 10, -1, 1, 60),    29: (1, -1, 10, 10, None),
+    12: (-1, 1, 10, 10, None),
+    13: (10, 10, 10, 10, None),
+    14: (10, 10, -1, 1, 49),
+    15: (10, 10, -1, 1, 50),
+    16: (10, 10, -1, 1, 51),
+    17: (10, 10, -1, 1, 52),
+    18: (10, 10, -1, 1, 53),
+    19: (10, 10, -1, 1, 54),
+    20: (-1, 1, 10, -1, 41),
+    21: (10, 10, 1, -1, 42),
+    22: (10, 2, 10, 10, None),
+    23: (10, 10, -1, 1, 55),
+    24: (10, 10, -1, 1, 56),
+    25: (10, 10, -1, 1, 57),
+    26: (10, 10, -1, 1, 58),
+    27: (10, 10, -1, 1, 59),
+    28: (10, 10, -1, 1, 60),
+    29: (1, -1, 10, 10, None),
     30: (10, 10, 1, -1, 11), #link to other main branch
-    31: (1, -1, 10, 10, None), 32: (10, 10, -1, 1, 61),    33: (10, 10, -1, 1, 62),   34: (10, 10, -1, 1, 63),   35: (10, 10, -1, 1, 64),
-    36: (10, 10, -1, 1, 65),   37: (10, 10, -1, 1, 66),    38: (10, 2, 10, 10, None),
-    
+    31: (1, -1, 10, 10, None),
+    32: (10, 10, -1, 1, 61),
+    33: (10, 10, -1, 1, 62),
+    34: (10, 10, -1, 1, 63),
+    35: (10, 10, -1, 1, 64),
+    36: (10, 10, -1, 1, 65),
+    37: (10, 10, -1, 1, 66),
+    38: (10, 2, 10, 10, None),
     39: (10, 10, 1, -1, 1), #minor from 1
     40: (10, 10, 10, -1, 2), #minor from 2
     41: (10, 10, 1, 10, 20), #minor from 20
     42: (10, 10, 1, -1, 21), #minor from 21
 
     #shelf nodes
-    43: (10, 10, -1, 1, 3),    44: (10, 10, -1, 1, 4),    45: (10, 10, -1, 1, 5),    46: (10, 10, -1, 1, 6),    47: (10, 10, -1, 1, 7),    48: (10, 10, -1, 1, 8),
-    49: (10, 10, -1, 1, 14),   50: (10, 10, -1, 1, 15),   51: (10, 10, -1, 1, 16),   52: (10, 10, -1, 1, 17),   53: (10, 10, -1, 1, 18),   54: (10, 10, -1, 1, 19),
-    55: (10, 10, -1, 1, 23),   56: (10, 10, -1, 1, 24),   57: (10, 10, -1, 1, 25),   58: (10, 10, -1, 1, 26),   59: (10, 10, -1, 1, 27),   60: (10, 10, -1, 1, 28),
-    61: (10, 10, -1, 1, 32),   62: (10, 10, -1, 1, 33),   63: (10, 10, -1, 1, 34),   64: (10, 10, -1, 1, 35),   65: (10, 10, -1, 1, 36),   66: (10, 10, -1, 1, 37)
+    43: (10, 10, -1, 1, 3),
+    44: (10, 10, -1, 1, 4),
+    45: (10, 10, -1, 1, 5),
+    46: (10, 10, -1, 1, 6),
+    47: (10, 10, -1, 1, 7),
+    48: (10, 10, -1, 1, 8),
+    
+    49: (10, 10, -1, 1, 14),
+    50: (10, 10, -1, 1, 15),
+    51: (10, 10, -1, 1, 16),
+    52: (10, 10, -1, 1, 17),
+    53: (10, 10, -1, 1, 18),
+    54: (10, 10, -1, 1, 19),
+    
+    55: (10, 10, -1, 1, 23),
+    56: (10, 10, -1, 1, 24),
+    57: (10, 10, -1, 1, 25),
+    58: (10, 10, -1, 1, 26),
+    59: (10, 10, -1, 1, 27),
+    60: (10, 10, -1, 1, 28),
+    
+    61: (10, 10, -1, 1, 32),
+    62: (10, 10, -1, 1, 33),
+    63: (10, 10, -1, 1, 34),
+    64: (10, 10, -1, 1, 35),
+    65: (10, 10, -1, 1, 36),
+    66: (10, 10, -1, 1, 37)
 }
+
+
+
 
 
 def turn_follower(junction_list, vals, count):
@@ -120,10 +157,17 @@ def load(current_node, count):
     drive.stop()
     
     if current_node < 21:
-        actuator.setheight(27)
+        actuator.setheight(30)
     else:
-        actuator.setheight(4)
+        actuator.setheight(3)
+    
+    while IR_sensors.read() not in ([1, 1, 1, 0], [0, 1, 1, 1]):
+        drive.set(-55000, -55000)
 
+    drive.stop()
+    
+    drive.set(45000, 45000)
+    
     if IR_sensors.read() == [0, 1, 1, 1]:
         jh.turn(-1)  #turn right
     else:
@@ -133,26 +177,30 @@ def load(current_node, count):
         vals = IR_sensors.read()
         err = IR_sensors.compute_error(vals)
         corr = pid.update(err)
-        jh.apply_motor_speeds(10000, corr, 0)
+        jh.apply_motor_speeds(19000, corr, 0)
         
-    sleep(0.8)
+    sleep(1.0)
     drive.stop()
-    actuator.setheight(30)
-    drive.set(-20000, -20000)                                                                  #reverse a bit out the shelf
-    time.sleep(3)               
- 
+    actuator.setheight(39)
+
+    drive.set(-24000, -20000)                                                                  #reverse a bit out the shelf
+    time.sleep(2.3)               
+
+    
     drive.stop()
     minor_node = router.graph.get_node(current_node).minor.id    #set current node to current.minor
     jh.turn(2)                                                                                 #need to do a junc = 2 turn, then set count to 1
+    drive.set(-24000, -20000)
+    sleep(1.5)
     count = 1    
     return minor_node, count
 
 def unload(count):
     drive.set(10000, 10000)                                                                    #go a bit into the bay area
-    time.sleep(2)
+    time.sleep(1.2)
     drive.stop()
     actuator.setheight(0)
-    drive.set(-20000, -20000)                                                                  #reverse a bit out the bay, simply needs to stop at the bay node
+    drive.set(-23000, -20000)                                                                  #reverse a bit out the bay, simply needs to stop at the bay node
     time.sleep(2)                                                                              #ideally the robot will stop at the bay node since the sleep times are the same 
     drive.stop() 
     actuator.setheight(20)                                                                     #keep fork off ground in case we go to ramp
@@ -171,22 +219,6 @@ def i2c_clear(scl_pin, sda_pin):
     scl.high(); sleep(0.001)
     sda.high(); sleep(0.001)
 
-def color_sensor_reading():
-    clear, red, green, blue = TCS3472.read()
-
-    if (abs(red - green) < (0.1 * clear)) and ((red - blue) > (0.05 * clear)): #yellow box: has lower blue and similar RG values
-        color = "Yellow"
-        #print("Yellow")
-    elif (red > green) and (red > blue) and ((red-green) / clear > 0.05): #red box: has R as significantly higher than the GB values
-        color = "Red"
-        #print("Red")
-    elif (blue > red) and (blue > green) and ((red-green) / clear > 0.05): #blue box: has blue as significantly higher than the RG values
-        color = "Blue"
-        #print("Blue")
-    else: #green box: anything else
-        color = "Green"
-        #print("Green")
-    return color
 
 def box_detection(vals, current_node, distance, threshold):    
     # the line sensor must read the junction values
@@ -201,9 +233,14 @@ def box_detection(vals, current_node, distance, threshold):
 
 
 
-threshold = 290 #measured threshold distance from main track to the shelf (290mm if a box was present)
+threshold = 290                                                                                #measured this
 
-color_node = {"Green": 39, "Blue": 40, "Red": 41, "Yellow": 42}
+color_node = {
+"Green": 39,
+"Blue": 40,
+"Red": 41,
+"Yellow": 42
+}
 
 color_node_val = [39,40,41,42]
 
@@ -216,28 +253,34 @@ state = "FOLLOW_LINE"
 cold = ["Blue", "Green"]
 warm = ["Red", "Yellow"]
 
-junction_sensor_values = [[0,1,1,1], [1,1,1,0], [1,1,1,1]] #possible IR sensor readings if at a junction
+junction_sensor_values = [[0,1,1,1], [1,1,1,0], [1,1,1,1]]
 
-graph = rt.RouteGraph(nodedirections) #build the node map
+graph = rt.RouteGraph(nodedirections) 
 router = rt.Router(graph)
-junction_list = router.route(0, 22) #initial path: try to go to node 22 (end orange node)
-turns = junction_list.turn_sequence #turn sequence (list of integers of turn arguments (see control)
-nodes = junction_list.path_nodes #node number list (needed to update current node, important for determing which node the robot was at when a box was detected)
+junction_list = router.route(-1, 22)
+turns = junction_list.turn_sequence
+nodes = junction_list.path_nodes
+#print(turns)
+#print(nodes)
+
+# Initialisations
+device = None
+distance = 10000 #arbitrarily high values
 
 
-try: #press button to begin
+try:
     while True:
         button_val = button.value()
         if button_val == 1 and prev == 0:
             break
 finally:
     pass
-    
-led.value(1) #turn on amber LED flashing circuit
 
-#actuator.reset()
-actuator.height = 0
-actuator.setheight(20) #set actuator height to 20 while following line to prevent scraping along floor
+led.value(1)
+
+actuator.reset()
+actuator.height = 0												#might need to change this based on bottom height of wooden forklift
+actuator.setheight(20)
 
 try: 
     while True: 
@@ -262,27 +305,43 @@ try:
         if state == "FOLLOW_LINE":
             actuator.setheight(20)
             jh.apply_motor_speeds(base_speed, corr, junction)
-            
-            
+            #print(junction)
+
+# sensors initialisation==================================================================================================================================================================================================================================================
             
             if current_node == 2 or current_node == 31:
+                if ISON == "None":
+                    device = "VL"
+                    i2c_clear(20, 21)
+                    VL53L0X = sen.VL53L0X(I2C(id = 0, sda = Pin(8), scl = Pin(9)))                                                                  #now can write VL53L0X.read(), .read(), .stop()
+                    VL53L0X.dev.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[0], 18)
+                    VL53L0X.dev.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[1], 14)
+                    ISON = "VL"
+                    
                 if ISON == "TMF":
                     TMF8701.end()
-                device = "VL"
-                i2c_clear(20, 21)
+                    device = "VL"
+                    i2c_clear(20, 21)
+                    VL53L0X = sen.VL53L0X(I2C(id = 0, sda = Pin(8), scl = Pin(9)))                                                                  #now can write VL53L0X.read(), .read(), .stop()
+                    VL53L0X.dev.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[0], 18)
+                    VL53L0X.dev.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[1], 14)
+                    ISON = "VL"
             
-            elif current_node == 20 and current_node == 29:
+            elif current_node == 20 or current_node == 29:
                 if ISON == "VL":
                     VL53L0X.end()
-                device = "TMF"
-                i2c_clear(8, 9)
+                    device = "TMF"
+                    i2c_clear(8, 9)
+                    tof = DFRobot_TMF8701(I2C(id = 0, sda = Pin(20), scl = Pin(21)))
+                    TMF8701 = sen.TMF8701(tof)                                                                          #now can write TMF8701.start(), .read(), .stop()
+
             
             if device == "VL":
                 distance = VL53L0X.read()
-                ISON = "VL"
+                #print(distance)
             elif device == "TMF":
                 distance = TMF8701.read()
-                ISON = "TMF"
+                #print(distance)
                 
                 
             
@@ -290,7 +349,7 @@ try:
                 
                 state = "COLLECTING"  
                 current_node, count = load(current_node, count)                                       #need to traverse to minor: load returns the current node's minor
-                color = color_sensor_reading()
+                color = "Blue" if orange_counter < 4 else "Red"
                 router.facing = "b"                                                                   #set facing to backwards (facing needs to be changed): this is required for the next turn sequence to start correctly 
                 box_node = current_node
 
@@ -318,15 +377,11 @@ try:
             count = unload(count)                                                                                     
 
             if orange_counter < 4 and purple_counter < 4: 
-                # both areas have boxes left
-                if color in cold: 
+                # both areas have boxes left 
                     next_area = "ORANGE"
                 
-                if color in warm: 
-                    next_area = "PURPLE"
-                
-            elif orange_counter < 4:
-                next_area = "ORANGE"
+#            elif orange_counter < 4:
+#                next_area = "ORANGE"
 
             elif purple_counter < 4:
                 next_area = "PURPLE"
@@ -362,3 +417,13 @@ try:
 
 finally:
     drive.stop()
+    
+    
+#can use interrupts: index error: continue
+    #is that even needed? maybe because we keep trying to work towards 22 and 38 then we never reach an index error?
+    
+    
+#TODOS:
+#How are we implementing turn now? given that it now uses the IR sensor readings, are we now going to import the IR sensors into the control lib?
+#Enforcing these turns after the load/unload sequences (this is entirely dependent on the previous point)
+#Which distance sensor on which side?

@@ -1,5 +1,5 @@
 from machine import Pin, ADC, PWM, SoftI2C, I2C
-from libs.VL53L0X.VL53L0X import VL53L0X
+from libs.VL53L0X.VL53L0X import VL53L0X as _vl53_driver
 import time
 from utime import sleep
 from libs.tcs3472_micropython.tcs3472 import tcs3472
@@ -29,19 +29,19 @@ class IRSensorArray:
 class VL53L0X: # the VL53L0X dist sensor, expected config (0, 8, 9)
     def __init__(self, i2c):
         self.i2c = i2c
-        self.dev = VL53L0X(i2c)
+        self.dev = _vl53_driver(i2c)
         self.initialised = False
    
     def read(self):
         if self.initialised == False:
-            self.sensor.start()
+            self.dev.start()
             self.initialised = True
             
-        distance = self.sensor.read()
+        distance = self.dev.read()
         return distance
 
     def end(self):
-        self.sensor.stop()
+        self.dev.stop()
         self.initialised = False
 
 
@@ -192,3 +192,4 @@ class TMF8701:
     def end(self):
         self.dev.stop_measurement()
         self.initialised = False
+

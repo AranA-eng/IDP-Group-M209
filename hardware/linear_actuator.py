@@ -31,7 +31,7 @@ class Actuator:
             newheight = 0
             
         distance = newheight - self.height
-        timeon = abs(distance/9) #translate from distance (mm) to time actuator is on (1 time unit = 9mm)
+        timeon = abs(distance / 6) #translate from distance (mm) to time actuator is on (1 time unit = 6mm)
         
         if distance == 0:
             return
