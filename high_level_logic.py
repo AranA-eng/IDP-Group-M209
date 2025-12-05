@@ -49,8 +49,8 @@ TMF8701 = sen.TMF8701(tof)                                                      
 VL53L0X = sen.VL53L0X(i2c_VL53L0X)                                                                  #now can write VL53L0X.read(), .read(), .stop()
 TCS3472 = sen.TCS34725(i2c_colour, onoffpin = onoff)                                                #now can write TCS3472.read()
 
-VL53L0X.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[0], 18)
-VL53L0X.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[1], 14)
+VL53L0X.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[0], 18)
+VL53L0X.set_Vcsel_pulse_period(VL53L0X.dev.vcsel_period_type[1], 14)
 
 # line sensor pins
 IR_PINS = [12, 13, 11, 10]
@@ -76,88 +76,36 @@ purple_counter = 0
 box_node = 0
 ISON = None
 
+# nodes at which distance to shelf needs to be checked for boxes
 orange_branches = [3, 4, 5, 6, 7, 8, 23, 24, 25, 26, 27, 28]
 purple_branches = [14, 15, 16, 17, 18, 19, 32, 33, 34, 35, 36, 37]
 
 # map of the nodes
 nodedirections = {
     -1: (10, 10, 1, -1, 0), #note that for the minor nodes, minordirs means the direction to turn at their major links to go f or b
-    0: (10, 10, 1, -1, -1),
-    1: (10, 10, 1, -1, 39),
-    2: (-1, 1, 1, 10, 40),
-    3: (10, 10, -1, 1, 43),
-    4: (10, 10, -1, 1, 44),
-    5: (10, 10, -1, 1, 45),
-    6: (10, 10, -1, 1, 46),
-    7: (10, 10, -1, 1, 47),
-    8: (10, 10, -1, 1, 48),
-    9: (10, 10, 10, 10, None),
-    10: (-1, 1, 10, 10, None),
+    0: (10, 10, 1, -1, -1),    1: (10, 10, 1, -1, 39),     2: (-1, 1, 1, 10, 40),     3: (10, 10, -1, 1, 43),    4: (10, 10, -1, 1, 44),
+    5: (10, 10, -1, 1, 45),    6: (10, 10, -1, 1, 46),     7: (10, 10, -1, 1, 47),    8: (10, 10, -1, 1, 48),    9: (10, 10, 10, 10, None),
+    10: (-1, 1, 10, 10, None), 
     11: (10, 10, -1, 1, 30), #link to other main branch
-    12: (-1, 1, 10, 10, None),
-    13: (10, 10, 10, 10, None),
-    14: (10, 10, -1, 1, 49),
-    15: (10, 10, -1, 1, 50),
-    16: (10, 10, -1, 1, 51),
-    17: (10, 10, -1, 1, 52),
-    18: (10, 10, -1, 1, 53),
-    19: (10, 10, -1, 1, 54),
-    20: (-1, 1, 10, -1, 41),
-    21: (10, 10, 1, -1, 42),
-    22: (10, 2, 10, 10, None),
-    23: (10, 10, -1, 1, 55),
-    24: (10, 10, -1, 1, 56),
-    25: (10, 10, -1, 1, 57),
-    26: (10, 10, -1, 1, 58),
-    27: (10, 10, -1, 1, 59),
-    28: (10, 10, -1, 1, 60),
-    29: (1, -1, 10, 10, None),
+    12: (-1, 1, 10, 10, None), 13: (10, 10, 10, 10, None), 14: (10, 10, -1, 1, 49),   15: (10, 10, -1, 1, 50),   16: (10, 10, -1, 1, 51),
+    17: (10, 10, -1, 1, 52),   18: (10, 10, -1, 1, 53),    19: (10, 10, -1, 1, 54),   20: (-1, 1, 10, -1, 41),   21: (10, 10, 1, -1, 42),
+    22: (10, 2, 10, 10, None), 23: (10, 10, -1, 1, 55),    24: (10, 10, -1, 1, 56),   25: (10, 10, -1, 1, 57),   26: (10, 10, -1, 1, 58),
+    27: (10, 10, -1, 1, 59),   28: (10, 10, -1, 1, 60),    29: (1, -1, 10, 10, None),
     30: (10, 10, 1, -1, 11), #link to other main branch
-    31: (1, -1, 10, 10, None),
-    32: (10, 10, -1, 1, 61),
-    33: (10, 10, -1, 1, 62),
-    34: (10, 10, -1, 1, 63),
-    35: (10, 10, -1, 1, 64),
-    36: (10, 10, -1, 1, 65),
-    37: (10, 10, -1, 1, 66),
-    38: (10, 2, 10, 10, None),
+    31: (1, -1, 10, 10, None), 32: (10, 10, -1, 1, 61),    33: (10, 10, -1, 1, 62),   34: (10, 10, -1, 1, 63),   35: (10, 10, -1, 1, 64),
+    36: (10, 10, -1, 1, 65),   37: (10, 10, -1, 1, 66),    38: (10, 2, 10, 10, None),
+    
     39: (10, 10, 1, -1, 1), #minor from 1
     40: (10, 10, 10, -1, 2), #minor from 2
     41: (10, 10, 1, 10, 20), #minor from 20
     42: (10, 10, 1, -1, 21), #minor from 21
 
     #shelf nodes
-    43: (10, 10, -1, 1, 3),
-    44: (10, 10, -1, 1, 4),
-    45: (10, 10, -1, 1, 5),
-    46: (10, 10, -1, 1, 6),
-    47: (10, 10, -1, 1, 7),
-    48: (10, 10, -1, 1, 8),
-    
-    49: (10, 10, -1, 1, 14),
-    50: (10, 10, -1, 1, 15),
-    51: (10, 10, -1, 1, 16),
-    52: (10, 10, -1, 1, 17),
-    53: (10, 10, -1, 1, 18),
-    54: (10, 10, -1, 1, 19),
-    
-    55: (10, 10, -1, 1, 23),
-    56: (10, 10, -1, 1, 24),
-    57: (10, 10, -1, 1, 25),
-    58: (10, 10, -1, 1, 26),
-    59: (10, 10, -1, 1, 27),
-    60: (10, 10, -1, 1, 28),
-    
-    61: (10, 10, -1, 1, 32),
-    62: (10, 10, -1, 1, 33),
-    63: (10, 10, -1, 1, 34),
-    64: (10, 10, -1, 1, 35),
-    65: (10, 10, -1, 1, 36),
-    66: (10, 10, -1, 1, 37)
+    43: (10, 10, -1, 1, 3),    44: (10, 10, -1, 1, 4),    45: (10, 10, -1, 1, 5),    46: (10, 10, -1, 1, 6),    47: (10, 10, -1, 1, 7),    48: (10, 10, -1, 1, 8),
+    49: (10, 10, -1, 1, 14),   50: (10, 10, -1, 1, 15),   51: (10, 10, -1, 1, 16),   52: (10, 10, -1, 1, 17),   53: (10, 10, -1, 1, 18),   54: (10, 10, -1, 1, 19),
+    55: (10, 10, -1, 1, 23),   56: (10, 10, -1, 1, 24),   57: (10, 10, -1, 1, 25),   58: (10, 10, -1, 1, 26),   59: (10, 10, -1, 1, 27),   60: (10, 10, -1, 1, 28),
+    61: (10, 10, -1, 1, 32),   62: (10, 10, -1, 1, 33),   63: (10, 10, -1, 1, 34),   64: (10, 10, -1, 1, 35),   65: (10, 10, -1, 1, 36),   66: (10, 10, -1, 1, 37)
 }
-
-
-
 
 
 def turn_follower(junction_list, vals, count):
@@ -190,20 +138,9 @@ def load(current_node, count):
     sleep(0.8)
     drive.stop()
     actuator.setheight(30)
-
-    """                                                                                        #TODO: check this, would replace the two lines after   =====================================================
-    timer = time.ticks_ms()																#timer to reverse
-    while time.ticks_diff(time.ticks_ms(), timer) < 1800:
-        vals = read_sensors()
-        err = compute_error(vals)
-        corr = -pid.update(err)
-        apply_motor_speeds(-20000, corr, 0)
-    """
-
     drive.set(-20000, -20000)                                                                  #reverse a bit out the shelf
     time.sleep(3)               
-
-    
+ 
     drive.stop()
     minor_node = router.graph.get_node(current_node).minor.id    #set current node to current.minor
     jh.turn(2)                                                                                 #need to do a junc = 2 turn, then set count to 1
@@ -240,13 +177,13 @@ def color_sensor_reading():
     if (abs(red - green) < (0.1 * clear)) and ((red - blue) > (0.05 * clear)): #yellow box: has lower blue and similar RG values
         color = "Yellow"
         #print("Yellow")
-    elif (red > green) and (red > blue) and ((red-green) / clear > 0.05): #red box
+    elif (red > green) and (red > blue) and ((red-green) / clear > 0.05): #red box: has R as significantly higher than the GB values
         color = "Red"
         #print("Red")
-    elif (blue > red) and (blue > green) and ((red-green) / clear > 0.05): #blue box
+    elif (blue > red) and (blue > green) and ((red-green) / clear > 0.05): #blue box: has blue as significantly higher than the RG values
         color = "Blue"
         #print("Blue")
-    else: #green box
+    else: #green box: anything else
         color = "Green"
         #print("Green")
     return color
@@ -264,14 +201,9 @@ def box_detection(vals, current_node, distance, threshold):
 
 
 
-threshold = 290                                                                                #measured this
+threshold = 290 #measured threshold distance from main track to the shelf (290mm if a box was present)
 
-color_node = {
-"Green": 39,
-"Blue": 40,
-"Red": 41,
-"Yellow": 42
-}
+color_node = {"Green": 39, "Blue": 40, "Red": 41, "Yellow": 42}
 
 color_node_val = [39,40,41,42]
 
@@ -284,29 +216,28 @@ state = "FOLLOW_LINE"
 cold = ["Blue", "Green"]
 warm = ["Red", "Yellow"]
 
-junction_sensor_values = [[0,1,1,1], [1,1,1,0], [1,1,1,1]]
+junction_sensor_values = [[0,1,1,1], [1,1,1,0], [1,1,1,1]] #possible IR sensor readings if at a junction
 
-graph = rt.RouteGraph(nodedirections) 
+graph = rt.RouteGraph(nodedirections) #build the node map
 router = rt.Router(graph)
-junction_list = router.route(0, 22)
-turns = junction_list.turn_sequence
-nodes = junction_list.path_nodes
+junction_list = router.route(0, 22) #initial path: try to go to node 22 (end orange node)
+turns = junction_list.turn_sequence #turn sequence (list of integers of turn arguments (see control)
+nodes = junction_list.path_nodes #node number list (needed to update current node, important for determing which node the robot was at when a box was detected)
 
 
-
-try:
+try: #press button to begin
     while True:
         button_val = button.value()
         if button_val == 1 and prev == 0:
             break
 finally:
     pass
-
-led.value(1)
+    
+led.value(1) #turn on amber LED flashing circuit
 
 #actuator.reset()
-actuator.height = 0												#might need to change this based on bottom height of wooden forklift
-actuator.setheight(20)
+actuator.height = 0
+actuator.setheight(20) #set actuator height to 20 while following line to prevent scraping along floor
 
 try: 
     while True: 
@@ -431,13 +362,3 @@ try:
 
 finally:
     drive.stop()
-    
-    
-#can use interrupts: index error: continue
-    #is that even needed? maybe because we keep trying to work towards 22 and 38 then we never reach an index error?
-    
-    
-#TODOS:
-#How are we implementing turn now? given that it now uses the IR sensor readings, are we now going to import the IR sensors into the control lib?
-#Enforcing these turns after the load/unload sequences (this is entirely dependent on the previous point)
-#Which distance sensor on which side?
