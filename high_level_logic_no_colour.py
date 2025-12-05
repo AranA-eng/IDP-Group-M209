@@ -1,3 +1,6 @@
+#colour sensor stopped working, so this is a modified overall game logic that ignores the colour detection phase
+
+
 from hardware import motor as mo
 from hardware import sensors as sen
 from hardware import linear_actuator as act
